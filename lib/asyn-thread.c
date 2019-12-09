@@ -667,7 +667,7 @@ int Curl_resolver_getsock(struct connectdata *conn,
 #endif
     ms = Curl_timediff(Curl_now(), reslv->start);
     if(ms < 3)
-      milli = 0;
+      milli = 1;
     else if(ms <= 50)
       milli = (time_t)ms/3;
     else if(ms <= 250)
