@@ -35,8 +35,8 @@
 -include $(TOPDIR)/Make.defs
 
 CFLAGS += -DBUILDING_LIBCURL
-CFLAGS += -DUSE_SSL
 CFLAGS += -DHAVE_CONFIG_H
+
 CSRCS = $(wildcard *.c)
 CSRCS += $(wildcard ./vauth/*.c)
 CSRCS += $(wildcard ./vtls/*.c)
