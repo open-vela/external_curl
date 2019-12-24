@@ -5,12 +5,11 @@ task:
   name: FreeBSD
   freebsd_instance:
     matrix:
-      # There isn't a stable 13.0 image yet (2019-10)
+      # There isn't a stable 13.0 image yet (2019-12)
       image_family: freebsd-13-0-snap
-      image_family: freebsd-12-0
+      image_family: freebsd-12-1
       # The stable 11.3 image causes "Agent is not responding" so use a snapshot
       image_family: freebsd-11-3-snap
-      image_family: freebsd-10-4
 
   env:
     CIRRUS_CLONE_DEPTH: 10
@@ -21,6 +20,13 @@ task:
     - pkg delete -y curl
   configure_script:
     - ./buildconf
+    - case `uname -r` in
+        13.0*)
+        export CC=clang;
+        export CFLAGS="-fsanitize=address,undefined,signed-integer-overflow -fno-sanitize-recover=undefined,integer -Wformat -Werror=format-security -Werror=array-bounds -g"
+        export CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=undefined,integer -Wformat -Werror=format-security -Werror=array-bounds -g"
+        export LDFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=undefined,integer" ;;
+      esac
     - ./configure --prefix="${HOME}"/install --enable-debug --with-libssh2 --with-brotli --with-gssapi --with-libidn2 --enable-manual --enable-ldap --enable-ldaps --with-librtmp --with-libmetalink --with-libpsl --with-nghttp2 || { tail -300 config.log; false; }
   compile_script:
     - make V=1
@@ -37,10 +43,10 @@ task:
     - SKIP_TESTS=''
     - uname -r
     - case `uname -r` in
-        13.0*) SKIP_TESTS='!303 !304 !323 !504 !1242 !1243 !2002 !2003';;
-        12.0*) SKIP_TESTS='!303 !304 !323 !504 !1242 !1243 !2002 !2003';;
-        11.3*) SKIP_TESTS='!303 !304 !504 !1242 !1243 !2002 !2003';;
-        10.4*) SKIP_TESTS='!303 !304 !310 !311 !312 !313 !504 !1082 !1242 !1243 !2002 !2003 !2034 !2035 !2037 !2038 !2041 !2042 !2048 !3000 !3001';;
+        13.0*) SKIP_TESTS='!323 !1242 !1243 !2002 !2003';;
+        12.1*) SKIP_TESTS='!323 !1242 !1243 !2002 !2003';;
+        11.3*) SKIP_TESTS='!504 !1242 !1243 !2002 !2003';;
+        10.4*) SKIP_TESTS='!310 !311 !312 !313 !1082 !1242 !1243 !2002 !2003 !2034 !2035 !2037 !2038 !2041 !2042 !2048 !3000 !3001';;
       esac
     - sudo -u nobody make V=1 TFLAGS="-n -a -p !flaky ${SKIP_TESTS}" test-nonflaky
   install_script:
