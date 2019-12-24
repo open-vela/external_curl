@@ -39,49 +39,10 @@ PRIORITY  = $(CONFIG_TOOLS_CURL_PRIORITY)
 STACKSIZE = $(CONFIG_TOOLS_CURL_STACKSIZE)
 MODULE    = $(CONFIG_TOOLS_CURL)
 
-MAINSRC   = tool_main.c
-
 CFLAGS += -DHAVE_CONFIG_H
 CFLAGS += -I$(APPDIR)/external/curl/lib
 
-CSRCS = slist_wc.c
-CSRCS += tool_binmode.c
-CSRCS += tool_bname.c
-CSRCS += tool_cb_dbg.c
-CSRCS += tool_cb_hdr.c
-CSRCS += tool_cb_prg.c
-CSRCS += tool_cb_rea.c
-CSRCS += tool_cb_see.c
-CSRCS += tool_cb_wrt.c
-CSRCS += tool_cfgable.c
-CSRCS += tool_convert.c
-CSRCS += tool_dirhie.c
-CSRCS += tool_doswin.c
-CSRCS += tool_easysrc.c
-CSRCS += tool_filetime.c
-CSRCS += tool_formparse.c
-CSRCS += tool_getparam.c
-CSRCS += tool_getpass.c
-CSRCS += tool_help.c
-CSRCS += tool_helpers.c
-CSRCS += tool_homedir.c
-CSRCS += tool_hugehelp.c
-CSRCS += tool_libinfo.c
-CSRCS += tool_metalink.c
-CSRCS += tool_msgs.c
-CSRCS += tool_operate.c
-CSRCS += tool_operhlp.c
-CSRCS += tool_panykey.c
-CSRCS += tool_paramhlp.c
-CSRCS += tool_parsecfg.c
-CSRCS += tool_progress.c
-CSRCS += tool_setopt.c
-CSRCS += tool_sleep.c
-CSRCS += tool_strdup.c
-CSRCS += tool_urlglob.c
-CSRCS += tool_util.c
-CSRCS += tool_vms.c
-CSRCS += tool_writeout.c
-CSRCS += tool_xattr.c
+MAINSRC = tool_main.c
+CSRCS   = $(filter-out $(MAINSRC),$(wildcard *.c))
 
 include $(APPDIR)/Application.mk
