@@ -1617,8 +1617,7 @@ CURLcode Curl_http_done(struct connectdata *conn,
     Curl_add_buffer_free(&http->send_buffer);
   }
 
-  Curl_http2_done(data, premature);
-  Curl_quic_done(data, premature);
+  Curl_http2_done(conn, premature);
 
   Curl_mime_cleanpart(&http->form);
 
@@ -3974,7 +3973,7 @@ CURLcode Curl_http_readwrite_headers(struct Curl_easy *data,
     else if(checkprefix("Retry-After:", k->p)) {
       /* Retry-After = HTTP-date / delay-seconds */
       curl_off_t retry_after = 0; /* zero for unknown or "now" */
-      time_t date = Curl_getdate_capped(&k->p[12]);
+      time_t date = curl_getdate(&k->p[12], NULL);
       if(-1 == date) {
         /* not a date, try it as a decimal number */
         (void)curlx_strtoofft(&k->p[12], NULL, 10, &retry_after);
@@ -4032,7 +4031,9 @@ CURLcode Curl_http_readwrite_headers(struct Curl_easy *data,
 #endif
     else if(!k->http_bodyless && checkprefix("Last-Modified:", k->p) &&
             (data->set.timecondition || data->set.get_filetime) ) {
-      k->timeofdoc = Curl_getdate_capped(k->p + strlen("Last-Modified:"));
+      time_t secs = time(NULL);
+      k->timeofdoc = curl_getdate(k->p + strlen("Last-Modified:"),
+                                  &secs);
       if(data->set.get_filetime)
         data->info.filetime = k->timeofdoc;
     }

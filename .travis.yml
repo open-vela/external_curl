@@ -61,6 +61,12 @@ matrix:
           compiler: gcc
           dist: trusty
           env:
+              - T=normal C="--disable-http --disable-smtp --disable-imap"
+              - OVERRIDE_CC="CC=gcc-8" OVERRIDE_CXX="CXX=g++-8"
+        - os: linux
+          compiler: gcc
+          dist: trusty
+          env:
               - T=normal C="--enable-ares"
               - OVERRIDE_CC="CC=gcc-8" OVERRIDE_CXX="CXX=g++-8"
         - os: linux
@@ -226,6 +232,22 @@ matrix:
           compiler: clang
           dist: xenial
           env:
+              - T=debug C="--disable-threaded-resolver"
+              - OVERRIDE_CC="CC=clang-7" OVERRIDE_CXX="CXX=clang++-7"
+          addons:
+              apt:
+                  sources:
+                      - *common_sources
+                      - llvm-toolchain-xenial-7
+                  packages:
+                      - *common_packages
+                      - clang-7
+                      - libpsl-dev
+                      - libbrotli-dev
+        - os: linux
+          compiler: clang
+          dist: xenial
+          env:
               - T=debug C="--with-nss --without-ssl" NOTESTS=1 CPPFLAGS="-isystem /usr/include/nss"
               - OVERRIDE_CC="CC=clang-7" OVERRIDE_CXX="CXX=clang++-7"
           addons:
@@ -245,6 +267,9 @@ matrix:
           env:
               - T=iconv
               - OVERRIDE_CC="CC=gcc-8" OVERRIDE_CXX="CXX=g++-8"
+        - os: osx
+          compiler: gcc
+          env: T=debug C=--with-libssh2
         - os: osx
           compiler: gcc
           env: T=debug C="--disable-dict --disable-file --disable-ftp --disable-gopher --disable-imap --disable-ldap --disable-pop3 --disable-rtmp --disable-rtsp --disable-scp --disable-sftp --disable-smb --disable-smtp --disable-telnet --disable-tftp --disable-unix-sockets --disable-shared --enable-debug --enable-maintainer-mode --without-brotli --without-gssapi --without-libidn2 --without-libmetalink --without-libpsl --without-librtmp --without-libssh2 --without-nghttp2 --without-ntlm-auth --without-ssl --without-zlib"
@@ -301,7 +326,7 @@ matrix:
           compiler: gcc
           dist: xenial
           env:
-              - T=torture
+              - T=coverage
               - OVERRIDE_CC="CC=gcc-8" OVERRIDE_CXX="CXX=g++-8"
           addons:
               apt:
@@ -414,8 +439,8 @@ matrix:
                       - zlib1g-dev
 
 before_install:
-  - export "${OVERRIDE_CC-blank=}"
-  - export "${OVERRIDE_CXX-blank=}"
+    - eval "${OVERRIDE_CC}"
+    - eval "${OVERRIDE_CXX}"
 
 install:
   - if [ "$T" = "coverage" ]; then pip2 install --user cpp-coveralls; fi
@@ -444,7 +469,7 @@ before_script:
        git clone --depth 1 https://github.com/ngtcp2/ngtcp2 &&
        cd ngtcp2 &&
        autoreconf -i &&
-       ./configure PKG_CONFIG_PATH=$HOME/ngbuild/lib/pkgconfig LDFLAGS="-Wl,-rpath,$HOME/ngbuild/lib" --prefix=$HOME/ngbuild --enable-lib-only &&
+       ./configure PKG_CONFIG_PATH=$HOME/ngbuild/lib/pkgconfig LDFLAGS="-Wl,-rpath,$HOME/ngbuild/lib" --prefix=$HOME/ngbuild &&
        make && make install)
       fi
     - |
@@ -537,16 +562,6 @@ script:
         fi
     - |
         set -eo pipefail
-        if [ "$T" = "torture" ]; then
-             ./configure --enable-debug --disable-shared --disable-threaded-resolver --enable-code-coverage --enable-werror --enable-alt-svc --with-libssh2
-             make
-             make TFLAGS=-n test-nonflaky
-             make "TFLAGS=-n -e" test-nonflaky
-             tests="1 200 300 500 700 800 900 1000 1100 1200 1302 1400 1502 3000"
-             make "TFLAGS=-n --shallow=40 -t $tests" test-nonflaky
-        fi
-    - |
-        set -eo pipefail
         if [ "$T" = "debug" ]; then
              ./configure --enable-debug --enable-werror $C
              make && make examples
@@ -594,8 +609,6 @@ script:
                 make test-nonflaky
              fi
              if [ -n $CHECKSRC ]; then
-                echo "enable COPYRIGHTYEAR" > ./docs/examples/.checksrc
-                echo "enable COPYRIGHTYEAR" > ./include/curl/.checksrc
                 make checksrc
              fi
         fi
