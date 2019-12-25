@@ -42,6 +42,10 @@ MODULE    = $(CONFIG_TOOLS_CURL)
 CFLAGS += -DHAVE_CONFIG_H
 CFLAGS += -I$(APPDIR)/external/curl/lib
 
+ifeq ($(CONFIG_TOOLS_CURL_MANUAL),y)
+CFLAGS += -DUSE_MANUAL
+endif
+
 MAINSRC = tool_main.c
 CSRCS   = $(filter-out $(MAINSRC),$(wildcard *.c))
 
