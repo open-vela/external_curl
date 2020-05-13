@@ -129,10 +129,8 @@ CURLcode Curl_auth_decode_spnego_message(struct Curl_easy *data,
     nego->status = s_pSecFn->QuerySecurityPackageInfo((TCHAR *)
                                                       TEXT(SP_NAME_NEGOTIATE),
                                                       &SecurityPackage);
-    if(nego->status != SEC_E_OK) {
-      failf(data, "SSPI: couldn't get auth info\n");
-      return CURLE_AUTH_ERROR;
-    }
+    if(nego->status != SEC_E_OK)
+      return CURLE_NOT_BUILT_IN;
 
     nego->token_max = SecurityPackage->cbMaxToken;
 

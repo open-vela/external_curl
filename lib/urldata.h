@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -49,7 +49,6 @@
 #define PORT_RTMPT PORT_HTTP
 #define PORT_RTMPS PORT_HTTPS
 #define PORT_GOPHER 70
-#define PORT_MQTT 1883
 
 #define DICT_MATCH "/MATCH:"
 #define DICT_MATCH2 "/M:"
@@ -104,7 +103,6 @@
 #include "hostip.h"
 #include "hash.h"
 #include "splay.h"
-#include "dynbuf.h"
 
 /* return the count of bytes sent, or -1 on error */
 typedef ssize_t (Curl_send)(struct connectdata *conn, /* connection data */
@@ -126,11 +124,10 @@ typedef ssize_t (Curl_recv)(struct connectdata *conn, /* connection data */
 #include "smtp.h"
 #include "ftp.h"
 #include "file.h"
-#include "vssh/ssh.h"
+#include "ssh.h"
 #include "http.h"
 #include "rtsp.h"
 #include "smb.h"
-#include "mqtt.h"
 #include "wildcard.h"
 #include "multihandle.h"
 #include "quic.h"
@@ -152,6 +149,10 @@ typedef ssize_t (Curl_recv)(struct connectdata *conn, /* connection data */
 #include <libssh2.h>
 #include <libssh2_sftp.h>
 #endif /* HAVE_LIBSSH2_H */
+
+/* Initial size of the buffer to store headers in, it'll be enlarged in case
+   of need. */
+#define HEADERSIZE 256
 
 #define CURLEASY_MAGIC_NUMBER 0xc0dedbadU
 #define GOOD_EASY_HANDLE(x) \
@@ -256,10 +257,6 @@ struct ssl_config_data {
   BIT(falsestart);
   BIT(enable_beast); /* allow this flaw for interoperability's sake*/
   BIT(no_revoke);    /* disable SSL certificate revocation checks */
-  BIT(no_partialchain); /* don't accept partial certificate chains */
-  BIT(revoke_best_effort); /* ignore SSL revocation offline/missing revocation
-                              list errors */
-  BIT(native_ca_store); /* use the native ca store of operating system */
 };
 
 struct ssl_general_config {
@@ -369,14 +366,6 @@ struct ntlmdata {
   unsigned char nonce[8];
   void *target_info; /* TargetInfo received in the ntlm type-2 message */
   unsigned int target_info_len;
-
-#if defined(NTLM_WB_ENABLED)
-  /* used for communication with Samba's winbind daemon helper ntlm_auth */
-  curl_socket_t ntlm_auth_hlpr_socket;
-  pid_t ntlm_auth_hlpr_pid;
-  char *challenge; /* The received base64 encoded ntlm type-2 message */
-  char *response;  /* The generated base64 ntlm type-1/type-3 message */
-#endif
 #endif
 };
 #endif
@@ -466,6 +455,8 @@ struct ConnectBits {
 #endif
   BIT(netrc);         /* name+password provided by netrc */
   BIT(userpwd_in_url); /* name+password found in url */
+  BIT(stream_was_rewound); /* The stream was rewound after a request read
+                              past the end of its response byte boundary */
   BIT(proxy_connect_closed); /* TRUE if a proxy disconnected the connection
                                 in a CONNECT request with auth, so that
                                 libcurl should reconnect and continue. */
@@ -476,6 +467,7 @@ struct ConnectBits {
   BIT(tcp_fastopen); /* use TCP Fast Open */
   BIT(tls_enable_npn);  /* TLS NPN extension? */
   BIT(tls_enable_alpn); /* TLS ALPN extension? */
+  BIT(socksproxy_connecting); /* connecting through a socks proxy */
   BIT(connect_only);
 };
 
@@ -536,22 +528,9 @@ enum upgrade101 {
   UPGR101_WORKING             /* talking upgraded protocol */
 };
 
-enum doh_slots {
-  /* Explicit values for first two symbols so as to match hard-coded
-   * constants in existing code
-   */
-  DOH_PROBE_SLOT_IPADDR_V4 = 0, /* make 'V4' stand out for readability */
-  DOH_PROBE_SLOT_IPADDR_V6 = 1, /* 'V6' likewise */
-
-  /* Space here for (possibly build-specific) additional slot definitions */
-
-  /* for example */
-  /* #ifdef WANT_DOH_FOOBAR_TXT */
-  /*   DOH_PROBE_SLOT_FOOBAR_TXT, */
-  /* #endif */
-
-  /* AFTER all slot definitions, establish how many we have */
-  DOH_PROBE_SLOTS
+struct dohresponse {
+  unsigned char *memory;
+  size_t size;
 };
 
 /* one of these for each DoH request */
@@ -560,12 +539,12 @@ struct dnsprobe {
   int dnstype;
   unsigned char dohbuffer[512];
   size_t dohlen;
-  struct dynbuf serverdoh;
+  struct dohresponse serverdoh;
 };
 
 struct dohdata {
   struct curl_slist *headers;
-  struct dnsprobe probe[DOH_PROBE_SLOTS];
+  struct dnsprobe probe[2];
   unsigned int pending; /* still outstanding requests */
   const char *host;
   int port;
@@ -604,7 +583,12 @@ struct SingleRequest {
                                    written as body */
   int headerline;               /* counts header lines to better track the
                                    first one */
+  char *hbufp;                  /* points at *end* of header line */
+  size_t hbuflen;
   char *str;                    /* within buf */
+  char *str_start;              /* within buf */
+  char *end_ptr;                /* within buf */
+  char *p;                      /* within headerbuff */
   curl_off_t offset;            /* possible resume offset read from the
                                    Content-Range: header */
   int httpcode;                 /* error code from the 'HTTP/1.? XXX' or
@@ -785,10 +769,15 @@ struct proxy_info {
   char *passwd;  /* proxy password string, allocated */
 };
 
+#define CONNECT_BUFFER_SIZE 16384
+
 /* struct for HTTP CONNECT state data */
 struct http_connect_state {
-  struct dynbuf rcvbuf;
+  char connect_buffer[CONNECT_BUFFER_SIZE];
+  int perline; /* count bytes per line */
   int keepon;
+  char *line_start;
+  char *ptr; /* where to store more data */
   curl_off_t cl; /* size of content to read and ignore */
   enum {
     TUNNEL_INIT,    /* init/default/no tunnel state */
@@ -801,41 +790,6 @@ struct http_connect_state {
 
 struct ldapconninfo;
 
-/* for the (SOCKS) connect state machine */
-enum connect_t {
-  CONNECT_INIT,
-  CONNECT_SOCKS_INIT, /* 1 */
-  CONNECT_SOCKS_SEND, /* 2 waiting to send more first data */
-  CONNECT_SOCKS_READ_INIT, /* 3 set up read */
-  CONNECT_SOCKS_READ, /* 4 read server response */
-  CONNECT_GSSAPI_INIT, /* 5 */
-  CONNECT_AUTH_INIT, /* 6 setup outgoing auth buffer */
-  CONNECT_AUTH_SEND, /* 7 send auth */
-  CONNECT_AUTH_READ, /* 8 read auth response */
-  CONNECT_REQ_INIT,  /* 9 init SOCKS "request" */
-  CONNECT_RESOLVING, /* 10 */
-  CONNECT_RESOLVED,  /* 11 */
-  CONNECT_RESOLVE_REMOTE, /* 12 */
-  CONNECT_REQ_SEND,  /* 13 */
-  CONNECT_REQ_SENDING, /* 14 */
-  CONNECT_REQ_READ,  /* 15 */
-  CONNECT_REQ_READ_MORE, /* 16 */
-  CONNECT_DONE /* 17 connected fine to the remote or the SOCKS proxy */
-};
-
-#define SOCKS_STATE(x) (((x) >= CONNECT_SOCKS_INIT) &&  \
-                        ((x) < CONNECT_DONE))
-#define SOCKS_REQUEST_BUFSIZE 600  /* room for large user/pw (255 max each) */
-
-struct connstate {
-  enum connect_t state;
-  unsigned char socksreq[SOCKS_REQUEST_BUFSIZE];
-
-  /* CONNECT_SOCKS_SEND */
-  ssize_t outstanding;  /* send this many bytes more */
-  unsigned char *outp; /* send from this pointer */
-};
-
 /*
  * The connectdata struct contains all fields and variables that should be
  * unique for an entire connection.
@@ -845,7 +799,7 @@ struct connectdata {
      caution that this might very well vary between different times this
      connection is used! */
   struct Curl_easy *data;
-  struct connstate cnnct;
+
   struct curl_llist_element bundle_node; /* conncache */
 
   /* chunk is for HTTP chunked encoding, but is in the general connectdata
@@ -933,6 +887,7 @@ struct connectdata {
   char *passwd;  /* password string, allocated */
   char *options; /* options string, allocated */
 
+  char *oauth_bearer;     /* bearer token for OAuth 2.0, allocated */
   char *sasl_authzid;     /* authorisation identity string, allocated */
 
   int httpversion;        /* the HTTP version*10 reported by the server */
@@ -944,7 +899,8 @@ struct connectdata {
   curl_socket_t sock[2]; /* two sockets, the second is used for the data
                             transfer when doing FTP */
   curl_socket_t tempsock[2]; /* temporary sockets for happy eyeballs */
-  int tempfamily[2]; /* family used for the temp sockets */
+  bool sock_accepted[2]; /* TRUE if the socket on this index was created with
+                            accept() */
   Curl_recv *recv[2];
   Curl_send *send[2];
 
@@ -1036,6 +992,14 @@ struct connectdata {
                                because it authenticates connections, not
                                single requests! */
   struct ntlmdata proxyntlm; /* NTLM data for proxy */
+
+#if defined(NTLM_WB_ENABLED)
+  /* used for communication with Samba's winbind daemon helper ntlm_auth */
+  curl_socket_t ntlm_auth_hlpr_socket;
+  pid_t ntlm_auth_hlpr_pid;
+  char *challenge_header;
+  char *response_header;
+#endif
 #endif
 
 #ifdef USE_SPNEGO
@@ -1066,7 +1030,6 @@ struct connectdata {
     struct smb_conn smbc;
     void *rtmp;
     struct ldapconninfo *ldapc;
-    struct mqtt_conn mqtt;
   } proto;
 
   int cselect_bits; /* bitmask of socket events */
@@ -1087,7 +1050,7 @@ struct connectdata {
   struct http_connect_state *connect_state; /* for HTTP CONNECT */
   struct connectbundle *bundle; /* The bundle we are member of */
   int negnpn; /* APLN or NPN TLS negotiated protocol, CURL_HTTP_VERSION* */
-  int retrycount; /* number of retries on a new connection */
+
 #ifdef USE_UNIX_SOCKETS
   char *unix_domain_socket;
   BIT(abstract_unix_socket);
@@ -1100,10 +1063,6 @@ struct connectdata {
                               handle */
   BIT(writechannel_inuse); /* whether the write channel is in use by an easy
                               handle */
-  BIT(sock_accepted); /* TRUE if the SECONDARYSOCKET was created with
-                         accept() */
-  BIT(parallel_connect); /* set TRUE when a parallel connect attempt has
-                            started (happy eyeballs) */
 };
 
 /* The end of connectdata. */
@@ -1261,7 +1220,9 @@ struct Curl_http2_dep {
  * BODY).
  */
 struct tempbuf {
-  struct dynbuf b;
+  char *buf;  /* allocated buffer to keep data in when a write callback
+                 returns to make the connection paused */
+  size_t len; /* size of the 'tempwrite' allocated buffer */
   int type;   /* type of the 'tempwrite' buffer as a bitmask that is used with
                  Curl_client_write() */
 };
@@ -1314,6 +1275,7 @@ struct urlpieces {
 };
 
 struct UrlState {
+
   /* Points to the connection cache */
   struct conncache *conn_cache;
 
@@ -1321,7 +1283,9 @@ struct UrlState {
   struct curltime keeps_speed; /* for the progress meter really */
 
   struct connectdata *lastconnect; /* The last connection, NULL if undefined */
-  struct dynbuf headerb; /* buffer to store headers in */
+
+  char *headerbuff; /* allocated buffer to store headers in */
+  size_t headersize;   /* size of the allocation */
 
   char *buffer; /* download buffer */
   char *ulbuf; /* allocated upload buffer or NULL */
@@ -1401,8 +1365,8 @@ struct UrlState {
   struct urlpieces up;
 #ifndef CURL_DISABLE_HTTP
   size_t trailers_bytes_sent;
-  struct dynbuf trailers_buf; /* a buffer containing the compiled trailing
-                                 headers */
+  Curl_send_buffer *trailers_buf; /* a buffer containing the compiled trailing
+                                  headers */
 #endif
   trailers_state trailers_state; /* whether we are sending trailers
                                        and what stage are we at */
@@ -1426,8 +1390,6 @@ struct UrlState {
   BIT(ftp_trying_alternative);
   BIT(wildcardmatch); /* enable wildcard matching */
   BIT(expect100header);  /* TRUE if we added Expect: 100-continue */
-  BIT(disableexpect);    /* TRUE if Expect: is disabled due to a previous
-                            417 response */
   BIT(use_range);
   BIT(rangestringalloc); /* the range string is malloc()'ed */
   BIT(done); /* set to FALSE when Curl_init_do() is called and set to TRUE
@@ -1470,14 +1432,6 @@ struct DynamicStatic {
 
 struct Curl_multi;    /* declared and used only in multi.c */
 
-/*
- * This enumeration MUST not use conditional directives (#ifdefs), new
- * null terminated strings MUST be added to the enumeration immediately
- * before STRING_LASTZEROTERMINATED, binary fields immediately before
- * STRING_LAST. When doing so, ensure that the packages/OS400/chkstring.c
- * test is updated and applicable changes for EBCDIC to ASCII conversion
- * are catered for in curl_easy_setopt_ccsid()
- */
 enum dupstring {
   STRING_CERT_ORIG,       /* client certificate file name */
   STRING_CERT_PROXY,      /* client certificate file name */
@@ -1534,40 +1488,36 @@ enum dupstring {
   STRING_RTSP_SESSION_ID, /* Session ID to use */
   STRING_RTSP_STREAM_URI, /* Stream URI for this request */
   STRING_RTSP_TRANSPORT,  /* Transport for this session */
-
+#ifdef USE_SSH
   STRING_SSH_PRIVATE_KEY, /* path to the private key file for auth */
   STRING_SSH_PUBLIC_KEY,  /* path to the public key file for auth */
   STRING_SSH_HOST_PUBLIC_KEY_MD5, /* md5 of host public key in ascii hex */
   STRING_SSH_KNOWNHOSTS,  /* file name of knownhosts file */
-
+#endif
   STRING_PROXY_SERVICE_NAME, /* Proxy service name */
   STRING_SERVICE_NAME,    /* Service name */
   STRING_MAIL_FROM,
   STRING_MAIL_AUTH,
 
+#ifdef USE_TLS_SRP
   STRING_TLSAUTH_USERNAME_ORIG,  /* TLS auth <username> */
   STRING_TLSAUTH_USERNAME_PROXY, /* TLS auth <username> */
   STRING_TLSAUTH_PASSWORD_ORIG,  /* TLS auth <password> */
   STRING_TLSAUTH_PASSWORD_PROXY, /* TLS auth <password> */
-
+#endif
   STRING_BEARER,                /* <bearer>, if used */
-
+#ifdef USE_UNIX_SOCKETS
   STRING_UNIX_SOCKET_PATH,      /* path to Unix socket, if used */
-
+#endif
   STRING_TARGET,                /* CURLOPT_REQUEST_TARGET */
   STRING_DOH,                   /* CURLOPT_DOH_URL */
-
+#ifdef USE_ALTSVC
   STRING_ALTSVC,                /* CURLOPT_ALTSVC */
-
+#endif
   STRING_SASL_AUTHZID,          /* CURLOPT_SASL_AUTHZID */
-
+#ifndef CURL_DISABLE_PROXY
   STRING_TEMP_URL,              /* temp URL storage for proxy use */
-
-  STRING_DNS_SERVERS,
-  STRING_DNS_INTERFACE,
-  STRING_DNS_LOCAL_IP4,
-  STRING_DNS_LOCAL_IP6,
-
+#endif
   /* -- end of zero-terminated strings -- */
 
   STRING_LASTZEROTERMINATED,
@@ -1575,7 +1525,6 @@ enum dupstring {
   /* -- below this are pointers to binary data that cannot be strdup'ed. --- */
 
   STRING_COPYPOSTFIELDS,  /* if POST, set the fields' values here */
-
 
   STRING_LAST /* not used, just an end-of-list marker */
 };
@@ -1824,8 +1773,6 @@ struct UserDefined {
   BIT(doh); /* DNS-over-HTTPS enabled */
   BIT(doh_get); /* use GET for DoH requests, instead of POST */
   BIT(http09_allowed); /* allow HTTP/0.9 responses */
-  BIT(mail_rcpt_allowfails); /* allow RCPT TO command to fail for some
-                                recipients */
 };
 
 struct Names {
