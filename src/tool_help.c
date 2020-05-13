@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -40,7 +40,7 @@
  ---------------------------------------------------------
 
   cd $srcroot/docs/cmdline-opts
-  ./gen.pl listhelp
+  ./gen.pl listhelp *.d
  */
 
 struct helptxt {
@@ -131,6 +131,10 @@ static const struct helptxt helptext[] = {
    "EGD socket path for random data"},
   {"    --engine <name>",
    "Crypto engine to use"},
+  {"    --etag-save <file>",
+   "Get an ETag from response header and save it to a FILE"},
+  {"    --etag-compare <file>",
+   "Get an ETag from a file and send a conditional request"},
   {"    --expect100-timeout <seconds>",
    "How long to wait for 100-continue"},
   {"-f, --fail",
@@ -235,6 +239,8 @@ static const struct helptxt helptext[] = {
    "Mail from this address"},
   {"    --mail-rcpt <address>",
    "Mail to this address"},
+  {"    --mail-rcpt-allowfails",
+   "Allow RCPT TO command to fail for some recipients"},
   {"-M, --manual",
    "Display the full manual"},
   {"    --max-filesize <bytes>",
@@ -279,6 +285,8 @@ static const struct helptxt helptext[] = {
    "Write to file instead of stdout"},
   {"-Z, --parallel",
    "Perform transfers in parallel"},
+  {"    --parallel-immediate",
+   "Do not wait for multiplexing (with --parallel)"},
   {"    --parallel-max",
    "Maximum concurrency for parallel transfers"},
   {"    --pass <phrase>",
@@ -391,6 +399,8 @@ static const struct helptxt helptext[] = {
    "Retry on connection refused (use with --retry)"},
   {"    --retry-delay <seconds>",
    "Wait time between retries"},
+  {"    --retry-all-errors",
+   "Retry all errors (use with --retry)"},
   {"    --retry-max-time <seconds>",
    "Retry only within this period"},
   {"    --sasl-authzid <identity> ",
@@ -429,6 +439,8 @@ static const struct helptxt helptext[] = {
    "Allow security flaw to improve interop"},
   {"    --ssl-no-revoke",
    "Disable cert revocation checks (Schannel)"},
+  {"    --ssl-revoke-best-effort",
+   "Ignore revocation offline or missing revocation list errors (Schannel)"},
   {"    --ssl-reqd",
    "Require SSL/TLS"},
   {"-2, --sslv2",
@@ -542,7 +554,6 @@ static const struct feat feats[] = {
   {"MultiSSL",       CURL_VERSION_MULTI_SSL},
   {"PSL",            CURL_VERSION_PSL},
   {"alt-svc",        CURL_VERSION_ALTSVC},
-  {"ESNI",           CURL_VERSION_ESNI},
 };
 
 void tool_help(void)
