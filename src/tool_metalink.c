@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -54,6 +54,13 @@
 #  define SHA256_CTX void *
 #  define HAVE_NSS_CONTEXT
    static NSSInitContext *nss_context;
+#elif defined(USE_POLARSSL)
+#  include <polarssl/md5.h>
+#  include <polarssl/sha1.h>
+#  include <polarssl/sha256.h>
+#  define MD5_CTX    md5_context
+#  define SHA_CTX    sha1_context
+#  define SHA256_CTX sha256_context
 #elif (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && \
               (__MAC_OS_X_VERSION_MAX_ALLOWED >= 1040)) || \
       (defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && \
@@ -66,7 +73,7 @@
    and later. If you're building for an older cat, well, sorry. */
 #  define COMMON_DIGEST_FOR_OPENSSL
 #  include <CommonCrypto/CommonDigest.h>
-#elif defined(USE_WIN32_CRYPTO)
+#elif defined(WIN32)
 /* For Windows: If no other crypto library is provided, we fallback
    to the hash functions provided within the Microsoft Windows CryptoAPI */
 #  include <wincrypt.h>
@@ -112,7 +119,7 @@ struct win32_crypto_hash {
     *(str) = strdup((val)); \
   if(!(val)) \
     return PARAM_NO_MEM; \
-} while(0)
+} WHILE_FALSE
 
 #if defined(USE_OPENSSL)
 /* Functions are already defined */
@@ -318,7 +325,63 @@ static void SHA256_Final(unsigned char digest[32], SHA256_CTX *pctx)
   nss_hash_final(pctx, digest, 32);
 }
 
-#elif defined(USE_WIN32_CRYPTO)
+#elif defined(USE_POLARSSL)
+
+static int MD5_Init(MD5_CTX *ctx)
+{
+  md5_starts(ctx);
+  return 1;
+}
+
+static void MD5_Update(MD5_CTX *ctx,
+                       const unsigned char *input,
+                       unsigned int inputLen)
+{
+  md5_update(ctx, input, inputLen);
+}
+
+static void MD5_Final(unsigned char digest[16], MD5_CTX *ctx)
+{
+  md5_finish(ctx, digest);
+}
+
+static int SHA1_Init(SHA_CTX *ctx)
+{
+  sha1_starts(ctx);
+  return 1;
+}
+
+static void SHA1_Update(SHA_CTX *ctx,
+                        const unsigned char *input,
+                        unsigned int inputLen)
+{
+  sha1_update(ctx, input, inputLen);
+}
+
+static void SHA1_Final(unsigned char digest[20], SHA_CTX *ctx)
+{
+  sha1_finish(ctx, digest);
+}
+
+static int SHA256_Init(SHA256_CTX *ctx)
+{
+  sha256_starts(ctx, 0); /* 0 = sha256 */
+  return 1;
+}
+
+static void SHA256_Update(SHA256_CTX *ctx,
+                          const unsigned char *input,
+                          unsigned int inputLen)
+{
+  sha256_update(ctx, input, inputLen);
+}
+
+static void SHA256_Final(unsigned char digest[32], SHA256_CTX *ctx)
+{
+  sha256_finish(ctx, digest);
+}
+
+#elif defined(WIN32)
 
 static void win32_crypto_final(struct win32_crypto_hash *ctx,
                                unsigned char *digest,
@@ -336,8 +399,8 @@ static void win32_crypto_final(struct win32_crypto_hash *ctx,
 
 static int MD5_Init(MD5_CTX *ctx)
 {
-  if(CryptAcquireContext(&ctx->hCryptProv, NULL, NULL, PROV_RSA_FULL,
-                         CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
+  if(CryptAcquireContext(&ctx->hCryptProv, NULL, NULL,
+                         PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
     CryptCreateHash(ctx->hCryptProv, CALG_MD5, 0, 0, &ctx->hHash);
   }
   return 1;
@@ -357,8 +420,8 @@ static void MD5_Final(unsigned char digest[16], MD5_CTX *ctx)
 
 static int SHA1_Init(SHA_CTX *ctx)
 {
-  if(CryptAcquireContext(&ctx->hCryptProv, NULL, NULL, PROV_RSA_FULL,
-                         CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
+  if(CryptAcquireContext(&ctx->hCryptProv, NULL, NULL,
+                         PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
     CryptCreateHash(ctx->hCryptProv, CALG_SHA1, 0, 0, &ctx->hHash);
   }
   return 1;
@@ -378,8 +441,8 @@ static void SHA1_Final(unsigned char digest[20], SHA_CTX *ctx)
 
 static int SHA256_Init(SHA256_CTX *ctx)
 {
-  if(CryptAcquireContext(&ctx->hCryptProv, NULL, NULL, PROV_RSA_AES,
-                         CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
+  if(CryptAcquireContext(&ctx->hCryptProv, NULL, NULL,
+                         PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
     CryptCreateHash(ctx->hCryptProv, CALG_SHA_256, 0, 0, &ctx->hHash);
   }
   return 1;
@@ -401,9 +464,9 @@ static void SHA256_Final(unsigned char digest[32], SHA256_CTX *ctx)
 
 const digest_params MD5_DIGEST_PARAMS[] = {
   {
-    CURLX_FUNCTION_CAST(digest_init_func, MD5_Init),
-    CURLX_FUNCTION_CAST(digest_update_func, MD5_Update),
-    CURLX_FUNCTION_CAST(digest_final_func, MD5_Final),
+    CURLX_FUNCTION_CAST(Curl_digest_init_func, MD5_Init),
+    CURLX_FUNCTION_CAST(Curl_digest_update_func, MD5_Update),
+    CURLX_FUNCTION_CAST(Curl_digest_final_func, MD5_Final),
     sizeof(MD5_CTX),
     16
   }
@@ -411,9 +474,9 @@ const digest_params MD5_DIGEST_PARAMS[] = {
 
 const digest_params SHA1_DIGEST_PARAMS[] = {
   {
-    CURLX_FUNCTION_CAST(digest_init_func, SHA1_Init),
-    CURLX_FUNCTION_CAST(digest_update_func, SHA1_Update),
-    CURLX_FUNCTION_CAST(digest_final_func, SHA1_Final),
+    CURLX_FUNCTION_CAST(Curl_digest_init_func, SHA1_Init),
+    CURLX_FUNCTION_CAST(Curl_digest_update_func, SHA1_Update),
+    CURLX_FUNCTION_CAST(Curl_digest_final_func, SHA1_Final),
     sizeof(SHA_CTX),
     20
   }
@@ -421,9 +484,9 @@ const digest_params SHA1_DIGEST_PARAMS[] = {
 
 const digest_params SHA256_DIGEST_PARAMS[] = {
   {
-    CURLX_FUNCTION_CAST(digest_init_func, SHA256_Init),
-    CURLX_FUNCTION_CAST(digest_update_func, SHA256_Update),
-    CURLX_FUNCTION_CAST(digest_final_func, SHA256_Final),
+    CURLX_FUNCTION_CAST(Curl_digest_init_func, SHA256_Init),
+    CURLX_FUNCTION_CAST(Curl_digest_update_func, SHA256_Update),
+    CURLX_FUNCTION_CAST(Curl_digest_final_func, SHA256_Final),
     sizeof(SHA256_CTX),
     32
   }
@@ -457,7 +520,7 @@ static const metalink_digest_alias digest_aliases[] = {
   {NULL, NULL}
 };
 
-static digest_context *digest_init(const digest_params *dparams)
+digest_context *Curl_digest_init(const digest_params *dparams)
 {
   digest_context *ctxt;
 
@@ -485,16 +548,16 @@ static digest_context *digest_init(const digest_params *dparams)
   return ctxt;
 }
 
-static int digest_update(digest_context *context,
-                         const unsigned char *data,
-                         unsigned int len)
+int Curl_digest_update(digest_context *context,
+                       const unsigned char *data,
+                       unsigned int len)
 {
   (*context->digest_hash->digest_update)(context->digest_hashctx, data, len);
 
   return 0;
 }
 
-static int digest_final(digest_context *context, unsigned char *result)
+int Curl_digest_final(digest_context *context, unsigned char *result)
 {
   if(result)
     (*context->digest_hash->digest_final)(result, context->digest_hashctx);
@@ -551,7 +614,7 @@ static int check_hash(const char *filename,
     return -1;
   }
 
-  dctx = digest_init(digest_def->dparams);
+  dctx = Curl_digest_init(digest_def->dparams);
   if(!dctx) {
     fprintf(error, "Metalink: validating (%s) [%s] FAILED (%s)\n", filename,
             digest_def->hash_name, "failed to initialize hash algorithm");
@@ -562,7 +625,7 @@ static int check_hash(const char *filename,
   result = malloc(digest_def->dparams->digest_resultlen);
   if(!result) {
     close(fd);
-    digest_final(dctx, NULL);
+    Curl_digest_final(dctx, NULL);
     return -1;
   }
   while(1) {
@@ -574,13 +637,13 @@ static int check_hash(const char *filename,
     else if(len == -1) {
       fprintf(error, "Metalink: validating (%s) [%s] FAILED (%s)\n", filename,
               digest_def->hash_name, strerror(errno));
-      digest_final(dctx, result);
+      Curl_digest_final(dctx, result);
       close(fd);
       return -1;
     }
-    digest_update(dctx, buf, (unsigned int)len);
+    Curl_digest_update(dctx, buf, (unsigned int)len);
   }
-  digest_final(dctx, result);
+  Curl_digest_final(dctx, result);
   check_ok = memcmp(result, digest,
                     digest_def->dparams->digest_resultlen) == 0;
   /* sha*sum style verdict output */
@@ -832,7 +895,7 @@ size_t metalink_write_cb(void *buffer, size_t sz, size_t nmemb,
 {
   struct per_transfer *per = userdata;
   struct OutStruct *outs = &per->outs;
-  struct OperationConfig *config = per->config;
+  struct OperationConfig *config = outs->config;
   int rv;
 
   /*

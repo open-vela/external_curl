@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -108,7 +108,6 @@ struct OperationConfig {
   char *mail_from;
   struct curl_slist *mail_rcpt;
   char *mail_auth;
-  bool mail_rcpt_allowfails; /* --mail-rcpt-allowfails */
   char *sasl_authzid;       /* Authorisation identity (identity to use) */
   bool sasl_ir;             /* Enable/disable SASL initial response */
   bool proxytunnel;
@@ -157,8 +156,6 @@ struct OperationConfig {
   char *pubkey;
   char *hostpubmd5;
   char *engine;
-  char *etag_save_file;
-  char *etag_compare_file;
   bool crlf;
   char *customrequest;
   char *krblevel;
@@ -223,7 +220,6 @@ struct OperationConfig {
   bool tcp_nodelay;
   bool tcp_fastopen;
   long req_retry;           /* number of retries */
-  bool retry_all_errors;    /* retry on any error */
   bool retry_connrefused;   /* set connection refused as a transient error */
   long retry_delay;         /* delay between retries (in seconds) */
   long retry_maxtime;       /* maximum time to keep retrying */
@@ -254,11 +250,6 @@ struct OperationConfig {
 
   bool ssl_no_revoke;       /* disable SSL certificate revocation checks */
   /*bool proxy_ssl_no_revoke; */
-
-  bool ssl_revoke_best_effort; /* ignore SSL revocation offline/missing
-                                  revocation list errors */
-
-  bool native_ca_store;        /* use the native os ca store */
 
   bool use_metalink;        /* process given URLs as metalink XML file */
   metalinkfile *metalinkfile_list; /* point to the first node */
@@ -309,7 +300,6 @@ struct GlobalConfig {
 #endif
   bool parallel;
   long parallel_max;
-  bool parallel_connect;
   struct OperationConfig *first;
   struct OperationConfig *current;
   struct OperationConfig *last;   /* Always last in the struct */

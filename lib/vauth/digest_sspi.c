@@ -134,8 +134,7 @@ CURLcode Curl_auth_create_digest_md5_message(struct Curl_easy *data,
   if(status != SEC_E_OK) {
     free(input_token);
 
-    failf(data, "SSPI: couldn't get auth info\n");
-    return CURLE_AUTH_ERROR;
+    return CURLE_NOT_BUILT_IN;
   }
 
   token_max = SecurityPackage->cbMaxToken;
@@ -432,10 +431,8 @@ CURLcode Curl_auth_create_digest_http_message(struct Curl_easy *data,
   /* Query the security package for DigestSSP */
   status = s_pSecFn->QuerySecurityPackageInfo((TCHAR *) TEXT(SP_NAME_DIGEST),
                                               &SecurityPackage);
-  if(status != SEC_E_OK) {
-    failf(data, "SSPI: couldn't get auth info\n");
-    return CURLE_AUTH_ERROR;
-  }
+  if(status != SEC_E_OK)
+    return CURLE_NOT_BUILT_IN;
 
   token_max = SecurityPackage->cbMaxToken;
 

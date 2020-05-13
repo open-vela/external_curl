@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -352,8 +352,8 @@ CURLcode Curl_resolver_is_resolved(struct connectdata *conn,
     conn->async.os_specific;
   CURLcode result = CURLE_OK;
 
-  DEBUGASSERT(dns);
-  *dns = NULL;
+  if(dns)
+    *dns = NULL;
 
   waitperform(conn, 0);
 
@@ -381,18 +381,19 @@ CURLcode Curl_resolver_is_resolved(struct connectdata *conn,
   }
 
   if(res && !res->num_pending) {
-    (void)Curl_addrinfo_callback(conn, res->last_status, res->temp_ai);
-    /* temp_ai ownership is moved to the connection, so we need not free-up
-       them */
-    res->temp_ai = NULL;
-
+    if(dns) {
+      (void)Curl_addrinfo_callback(conn, res->last_status, res->temp_ai);
+      /* temp_ai ownership is moved to the connection, so we need not free-up
+         them */
+      res->temp_ai = NULL;
+    }
     if(!conn->async.dns) {
       failf(data, "Could not resolve: %s (%s)",
             conn->async.hostname, ares_strerror(conn->async.status));
       result = conn->bits.proxy?CURLE_COULDNT_RESOLVE_PROXY:
         CURLE_COULDNT_RESOLVE_HOST;
     }
-    else
+    else if(dns)
       *dns = conn->async.dns;
 
     destroy_async_data(&conn->async);
@@ -407,7 +408,7 @@ CURLcode Curl_resolver_is_resolved(struct connectdata *conn,
  * Waits for a resolve to finish. This function should be avoided since using
  * this risk getting the multi interface to "hang".
  *
- * 'entry' MUST be non-NULL.
+ * If 'entry' is non-NULL, make it point to the resolved dns entry
  *
  * Returns CURLE_COULDNT_RESOLVE_HOST if the host was not resolved,
  * CURLE_OPERATION_TIMEDOUT if a time-out occurred, or other errors.
@@ -419,9 +420,10 @@ CURLcode Curl_resolver_wait_resolv(struct connectdata *conn,
   struct Curl_easy *data = conn->data;
   timediff_t timeout;
   struct curltime now = Curl_now();
+  struct Curl_dns_entry *temp_entry;
 
-  DEBUGASSERT(entry);
-  *entry = NULL; /* clear on entry */
+  if(entry)
+    *entry = NULL; /* clear on entry */
 
   timeout = Curl_timeleft(data, &now, TRUE);
   if(timeout < 0) {
@@ -454,7 +456,7 @@ CURLcode Curl_resolver_wait_resolv(struct connectdata *conn,
       timeout_ms = 1000;
 
     waitperform(conn, timeout_ms);
-    result = Curl_resolver_is_resolved(conn, entry);
+    result = Curl_resolver_is_resolved(conn, entry?&temp_entry:NULL);
 
     if(result || conn->async.done)
       break;
@@ -624,11 +626,26 @@ Curl_addrinfo *Curl_resolver_getaddrinfo(struct connectdata *conn,
 {
   char *bufp;
   struct Curl_easy *data = conn->data;
+  struct in_addr in;
   int family = PF_INET;
+#ifdef ENABLE_IPV6 /* CURLRES_IPV6 */
+  struct in6_addr in6;
+#endif /* CURLRES_IPV6 */
 
   *waitp = 0; /* default to synchronous response */
 
+  /* First check if this is an IPv4 address string */
+  if(Curl_inet_pton(AF_INET, hostname, &in) > 0) {
+    /* This is a dotted IP address 123.123.123.123-style */
+    return Curl_ip2addr(AF_INET, &in, hostname, port);
+  }
+
 #ifdef ENABLE_IPV6 /* CURLRES_IPV6 */
+  /* Otherwise, check if this is an IPv6 address string */
+  if(Curl_inet_pton (AF_INET6, hostname, &in6) > 0)
+    /* This must be an IPv6 address literal.  */
+    return Curl_ip2addr(AF_INET6, &in6, hostname, port);
+
   switch(conn->ip_version) {
   default:
 #if ARES_VERSION >= 0x010601
@@ -667,7 +684,7 @@ Curl_addrinfo *Curl_resolver_getaddrinfo(struct connectdata *conn,
     res->last_status = ARES_ENOTFOUND;
 #ifdef ENABLE_IPV6 /* CURLRES_IPV6 */
     if(family == PF_UNSPEC) {
-      if(Curl_ipv6works(conn)) {
+      if(Curl_ipv6works()) {
         res->num_pending = 2;
 
         /* areschannel is already setup in the Curl_open() function */
