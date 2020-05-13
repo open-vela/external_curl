@@ -1,0 +1,19 @@
+#
+# For a description of the syntax of this configuration file,
+# see kconfig-language at https://www.kernel.org/doc/Documentation/kbuild/kconfig-language.txt
+#
+
+config LIB_CURL
+	bool "Enable libcurl"
+	depends on LIBC_LOCALTIME && LIB_ZLIB && LIB_NGHTTP2 && LIB_MBEDTLS && SERIAL_TERMIOS
+	default n
+	---help---
+		libcurl
+
+if LIB_CURL
+
+config LIB_CURL_CA_BUNDLE
+	string "Curl Certificate Authorize Bundle PATH"
+	default "/etc/ssl/curl/cacert.pem"
+
+endif
