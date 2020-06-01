@@ -6,7 +6,7 @@
  *                             \___|\___/|_| \_\_____|
  *
  * Copyright (C) 2014 - 2016, Steve Holme, <steve_holme@hotmail.com>.
- * Copyright (C) 2015 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2015 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -134,8 +134,7 @@ CURLcode Curl_auth_create_digest_md5_message(struct Curl_easy *data,
   if(status != SEC_E_OK) {
     free(input_token);
 
-    failf(data, "SSPI: couldn't get auth info\n");
-    return CURLE_AUTH_ERROR;
+    return CURLE_NOT_BUILT_IN;
   }
 
   token_max = SecurityPackage->cbMaxToken;
@@ -289,13 +288,13 @@ CURLcode Curl_override_sspi_http_realm(const char *chlg,
         if(strcasecompare(value, "realm")) {
 
           /* Setup identity's domain and length */
-          domain.tchar_ptr = curlx_convert_UTF8_to_tchar((char *) content);
+          domain.tchar_ptr = Curl_convert_UTF8_to_tchar((char *) content);
           if(!domain.tchar_ptr)
             return CURLE_OUT_OF_MEMORY;
 
           dup_domain.tchar_ptr = _tcsdup(domain.tchar_ptr);
           if(!dup_domain.tchar_ptr) {
-            curlx_unicodefree(domain.tchar_ptr);
+            Curl_unicodefree(domain.tchar_ptr);
             return CURLE_OUT_OF_MEMORY;
           }
 
@@ -304,7 +303,7 @@ CURLcode Curl_override_sspi_http_realm(const char *chlg,
           identity->DomainLength = curlx_uztoul(_tcslen(dup_domain.tchar_ptr));
           dup_domain.tchar_ptr = NULL;
 
-          curlx_unicodefree(domain.tchar_ptr);
+          Curl_unicodefree(domain.tchar_ptr);
         }
         else {
           /* Unknown specifier, ignore it! */
@@ -432,10 +431,8 @@ CURLcode Curl_auth_create_digest_http_message(struct Curl_easy *data,
   /* Query the security package for DigestSSP */
   status = s_pSecFn->QuerySecurityPackageInfo((TCHAR *) TEXT(SP_NAME_DIGEST),
                                               &SecurityPackage);
-  if(status != SEC_E_OK) {
-    failf(data, "SSPI: couldn't get auth info\n");
-    return CURLE_AUTH_ERROR;
-  }
+  if(status != SEC_E_OK)
+    return CURLE_NOT_BUILT_IN;
 
   token_max = SecurityPackage->cbMaxToken;
 
@@ -583,7 +580,7 @@ CURLcode Curl_auth_create_digest_http_message(struct Curl_easy *data,
     resp_buf.pvBuffer   = output_token;
     resp_buf.cbBuffer   = curlx_uztoul(token_max);
 
-    spn = curlx_convert_UTF8_to_tchar((char *) uripath);
+    spn = Curl_convert_UTF8_to_tchar((char *) uripath);
     if(!spn) {
       s_pSecFn->FreeCredentialsHandle(&credentials);
 
@@ -605,7 +602,7 @@ CURLcode Curl_auth_create_digest_http_message(struct Curl_easy *data,
                                                  &chlg_desc, 0,
                                                  digest->http_context,
                                                  &resp_desc, &attrs, &expiry);
-    curlx_unicodefree(spn);
+    Curl_unicodefree(spn);
 
     if(status == SEC_I_COMPLETE_NEEDED ||
        status == SEC_I_COMPLETE_AND_CONTINUE)

@@ -24,7 +24,6 @@ __pycache__
 CHANGES.dist
 Debug
 INSTALL
-Makefile
 Makefile.in
 Release
 TAGS
@@ -57,4 +56,4 @@ scripts/curl.fish
 curl_fuzzer
 curl_fuzzer_seed_corpus.zip
 libstandaloneengine.a
-
+.checksrc
