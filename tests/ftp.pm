@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2010, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -20,19 +20,6 @@
 #
 ###########################################################################
 
-BEGIN {
-    # portable sleeping needs Time::HiRes
-    eval {
-        no warnings "all";
-        require Time::HiRes;
-    };
-    # portable sleeping falls back to native Sleep on Win32
-    eval {
-        no warnings "all";
-        require Win32;
-    }
-}
-
 use strict;
 use warnings;
 
@@ -41,31 +28,6 @@ use serverhelp qw(
     mainsockf_pidfilename
     datasockf_pidfilename
     );
-
-use pathhelp qw(
-    os_is_win
-    );
-
-#######################################################################
-# portable_sleep uses Time::HiRes::sleep if available and falls back
-# to the classic approach of using select(undef, undef, undef, ...).
-# even though that one is not portable due to being implemented using
-# select on Windows: https://perldoc.perl.org/perlport.html#select
-# Therefore it uses Win32::Sleep on Windows systems instead.
-#
-sub portable_sleep {
-    my ($seconds) = @_;
-
-    if($Time::HiRes::VERSION) {
-        Time::HiRes::sleep($seconds);
-    }
-    elsif (os_is_win()) {
-        Win32::Sleep($seconds*1000);
-    }
-    else {
-        select(undef, undef, undef, $seconds);
-    }
-}
 
 #######################################################################
 # pidfromfile returns the pid stored in the given pidfile.  The value
@@ -95,22 +57,18 @@ sub pidexists {
     my $pid = $_[0];
 
     if($pid > 0) {
-        # verify if currently existing Windows process
-        if ($pid > 65536 && os_is_win()) {
-            $pid -= 65536;
-            if($^O ne 'MSWin32') {
-                my $filter = "PID eq $pid";
-                my $result = `tasklist -fi \"$filter\" 2>nul`;
-                if(index($result, "$pid") != -1) {
-                    return -$pid;
-                }
-                return 0;
-            }
-        }
-
         # verify if currently existing and alive
         if(kill(0, $pid)) {
             return $pid;
+        }
+
+        # verify if currently existing Windows process
+        if($^O eq "msys") {
+            my $filter = "PID eq $pid";
+            my $result = `tasklist -fi \"$filter\" 2>nul`;
+            if(index($result, "$pid") != -1) {
+                return -$pid;
+            }
         }
     }
 
@@ -124,71 +82,41 @@ sub pidterm {
     my $pid = $_[0];
 
     if($pid > 0) {
-        # request the process to quit
-        if ($pid > 65536 && os_is_win()) {
-            $pid -= 65536;
-            if($^O ne 'MSWin32') {
-                my $filter = "PID eq $pid";
-                my $result = `tasklist -fi \"$filter\" 2>nul`;
-                if(index($result, "$pid") != -1) {
-                    system("taskkill -fi \"$filter\" >nul 2>&1");
-                }
-                return;
-            }
-        }
-
         # signal the process to terminate
         kill("TERM", $pid);
+
+        # request the process to quit
+        if($^O eq "msys") {
+            my $filter = "PID eq $pid";
+            my $result = `tasklist -fi \"$filter\" 2>nul`;
+            if(index($result, "$pid") != -1) {
+                system("taskkill -fi \"$filter\" >nul 2>&1");
+            }
+        }
     }
 }
 
 #######################################################################
-# pidkill kills the process with a given pid mercilessly and forcefully.
+# pidkill kills the process with a given pid mercilessly andforcefully.
 #
 sub pidkill {
     my $pid = $_[0];
 
     if($pid > 0) {
-        # request the process to quit
-        if ($pid > 65536 && os_is_win()) {
-            $pid -= 65536;
-            if($^O ne 'MSWin32') {
-                my $filter = "PID eq $pid";
-                my $result = `tasklist -fi \"$filter\" 2>nul`;
-                if(index($result, "$pid") != -1) {
-                    system("taskkill -f -fi \"$filter\" >nul 2>&1");
-                    # Windows XP Home compatibility
-                    system("tskill $pid >nul 2>&1");
-                }
-                return;
-            }
-        }
-
         # signal the process to terminate
         kill("KILL", $pid);
-    }
-}
 
-#######################################################################
-# pidwait waits for the process with a given pid to be terminated.
-#
-sub pidwait {
-    my $pid = $_[0];
-    my $flags = $_[1];
-
-    # check if the process exists
-    if ($pid > 65536 && os_is_win()) {
-        if($flags == &WNOHANG) {
-            return pidexists($pid)?0:$pid;
+        # request the process to quit
+        if($^O eq "msys") {
+            my $filter = "PID eq $pid";
+            my $result = `tasklist -fi \"$filter\" 2>nul`;
+            if(index($result, "$pid") != -1) {
+                system("taskkill -f -fi \"$filter\" >nul 2>&1");
+                # Windows XP Home compatibility
+                system("tskill $pid >nul 2>&1");
+            }
         }
-        while(pidexists($pid)) {
-            portable_sleep(0.01);
-        }
-        return $pid;
     }
-
-    # wait on the process to terminate
-    return waitpid($pid, $flags);
 }
 
 #######################################################################
@@ -215,7 +143,7 @@ sub processexists {
             # get rid of the certainly invalid pidfile
             unlink($pidfile) if($pid == pidfromfile($pidfile));
             # reap its dead children, if not done yet
-            pidwait($pid, &WNOHANG);
+            waitpid($pid, &WNOHANG);
             # negative return value means dead process
             return -$pid;
         }
@@ -265,7 +193,7 @@ sub killpid {
                     print("RUN: Process with pid $pid already dead\n")
                         if($verbose);
                     # if possible reap its dead children
-                    pidwait($pid, &WNOHANG);
+                    waitpid($pid, &WNOHANG);
                     push @reapchild, $pid;
                 }
             }
@@ -283,12 +211,12 @@ sub killpid {
                         if($verbose);
                     splice @signalled, $i, 1;
                     # if possible reap its dead children
-                    pidwait($pid, &WNOHANG);
+                    waitpid($pid, &WNOHANG);
                     push @reapchild, $pid;
                 }
             }
             last if(not scalar(@signalled));
-            portable_sleep(0.05);
+            select(undef, undef, undef, 0.05);
         }
     }
 
@@ -300,7 +228,7 @@ sub killpid {
                     if($verbose);
                 pidkill($pid);
                 # if possible reap its dead children
-                pidwait($pid, &WNOHANG);
+                waitpid($pid, &WNOHANG);
                 push @reapchild, $pid;
             }
         }
@@ -310,7 +238,7 @@ sub killpid {
     if(@reapchild) {
         foreach my $pid (@reapchild) {
             if($pid > 0) {
-                pidwait($pid, 0);
+                waitpid($pid, 0);
             }
         }
     }
@@ -339,7 +267,7 @@ sub killsockfilters {
             printf("* kill pid for %s-%s => %d\n", $server,
                 ($proto eq 'ftp')?'ctrl':'filt', $pid) if($verbose);
             pidkill($pid);
-            pidwait($pid, 0);
+            waitpid($pid, 0);
         }
         unlink($pidfile) if(-f $pidfile);
     }
@@ -353,7 +281,7 @@ sub killsockfilters {
             printf("* kill pid for %s-data => %d\n", $server,
                 $pid) if($verbose);
             pidkill($pid);
-            pidwait($pid, 0);
+            waitpid($pid, 0);
         }
         unlink($pidfile) if(-f $pidfile);
     }

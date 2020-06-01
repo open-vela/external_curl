@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -36,19 +36,21 @@
 /* The last #include file should be: */
 #include "memdebug.h"
 
-struct libthreaddata {
+typedef struct
+{
   int     _errno;
   void    *twentybytes;
-};
+} libthreaddata_t;
 
-struct libdata {
+typedef struct
+{
   int         x;
   int         y;
   int         z;
   void        *tenbytes;
   NXKey_t     perthreadkey;   /* if -1, no key obtained... */
   NXMutex_t   *lock;
-};
+} libdata_t;
 
 int         gLibId      = -1;
 void        *gLibHandle = (void *) NULL;
@@ -58,8 +60,7 @@ NXMutex_t   *gLibLock   = (NXMutex_t *) NULL;
 /* internal library function prototypes... */
 int  DisposeLibraryData(void *);
 void DisposeThreadData(void *);
-int  GetOrSetUpData(int id, struct libdata **data,
-                    struct libthreaddata **threaddata);
+int  GetOrSetUpData(int id, libdata_t **data, libthreaddata_t **threaddata);
 
 
 int _NonAppStart(void        *NLMHandle,
@@ -153,24 +154,24 @@ int _NonAppCheckUnload(void)
     return 0;
 }
 
-int GetOrSetUpData(int id, struct libdata **appData,
-                   struct libthreaddata **threadData)
+int GetOrSetUpData(int id, libdata_t **appData,
+                   libthreaddata_t **threadData)
 {
   int                 err;
-  struct libdata      *app_data;
-  struct libthreaddata *thread_data;
+  libdata_t           *app_data;
+  libthreaddata_t *thread_data;
   NXKey_t             key;
   NX_LOCK_INFO_ALLOC(liblock, "Application Data Lock", 0);
 
   err         = 0;
-  thread_data = (struct libthreaddata_t *) NULL;
+  thread_data = (libthreaddata_t *) NULL;
 
   /*
    * Attempt to get our data for the application calling us. This is where we
    * store whatever application-specific information we need to carry in
    * support of calling applications.
    */
-  app_data = (struct libdata *) get_app_data(id);
+  app_data = (libdata_t *) get_app_data(id);
 
   if(!app_data) {
     /*
@@ -183,9 +184,9 @@ int GetOrSetUpData(int id, struct libdata **appData,
      */
     NXLock(gLibLock);
 
-    app_data = (struct libdata *) get_app_data(id);
+    app_data = (libdata_t *) get_app_data(id);
     if(!app_data) {
-      app_data = calloc(1, sizeof(struct libdata));
+      app_data = calloc(1, sizeof(libdata_t));
 
       if(app_data) {
         app_data->tenbytes = malloc(10);
@@ -248,7 +249,7 @@ int GetOrSetUpData(int id, struct libdata **appData,
        * a pointer is not very important, this just helps to demonstrate that
        * we can have arbitrarily complex per-thread data.
        */
-      thread_data = malloc(sizeof(struct libthreaddata));
+      thread_data = malloc(sizeof(libthreaddata_t));
 
       if(thread_data) {
         thread_data->_errno      = 0;
@@ -256,7 +257,7 @@ int GetOrSetUpData(int id, struct libdata **appData,
 
         if(!thread_data->twentybytes) {
           free(thread_data);
-          thread_data = (struct libthreaddata *) NULL;
+          thread_data = (libthreaddata_t *) NULL;
           err         = ENOMEM;
         }
 
@@ -264,7 +265,7 @@ int GetOrSetUpData(int id, struct libdata **appData,
         if(err) {
           free(thread_data->twentybytes);
           free(thread_data);
-          thread_data = (struct libthreaddata *) NULL;
+          thread_data = (libthreaddata_t *) NULL;
         }
       }
     }
@@ -294,7 +295,7 @@ int DisposeLibraryData(void *data)
 void DisposeThreadData(void *data)
 {
   if(data) {
-    void *twentybytes = ((struct libthreaddata *) data)->twentybytes;
+    void *twentybytes = ((libthreaddata_t *) data)->twentybytes;
 
     free(twentybytes);
     free(data);
