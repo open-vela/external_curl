@@ -701,7 +701,7 @@ Otherwise, curl will attempt to use a sensible TLS default version.
 ## Resuming File Transfers
 
 To continue a file transfer where it was previously aborted, curl supports
-esume on HTTP(S) downloads as well as FTP uploads and downloads.
+resume on HTTP(S) downloads as well as FTP uploads and downloads.
 
 Continue downloading a document:
 
@@ -745,7 +745,7 @@ For fun try
 
     curl dict://dict.org/m:curl
     curl dict://dict.org/d:heisenbug:jargon
-    curl dict://dict.org/d:daniel:web1913
+    curl dict://dict.org/d:daniel:gcide
 
 Aliases for 'm' are 'match' and 'find', and aliases for 'd' are 'define' and
 'lookup'. For example,
