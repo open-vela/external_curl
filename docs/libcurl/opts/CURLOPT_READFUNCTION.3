@@ -5,7 +5,7 @@
 .\" *                            | (__| |_| |  _ <| |___
 .\" *                             \___|\___/|_| \_\_____|
 .\" *
-.\" * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+.\" * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
 .\" *
 .\" * This software is licensed as described in the file COPYING, which
 .\" * you should have received as part of this distribution. The terms
@@ -88,14 +88,14 @@ size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
 
 void setup(char *uploadthis)
 {
-  FILE *file = fopen("rb", uploadthis);
+  FILE *file = fopen(uploadthis, "rb");
   CURLcode result;
 
   /* set callback to use */
   curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
 
   /* pass in suitable argument to callback */
-  curl_easy_setopt(curl, CURLOPT_READDATA, uploadthis);
+  curl_easy_setopt(curl, CURLOPT_READDATA, (void *)file);
 
   result = curl_easy_perform(curl);
 }
