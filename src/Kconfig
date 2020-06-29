@@ -1,0 +1,36 @@
+#
+# For a description of the syntax of this configuration file,
+# see kconfig-language at https://www.kernel.org/doc/Documentation/kbuild/kconfig-language.txt
+#
+
+config TOOLS_CURL
+	tristate "Enable curl command line"
+	depends on LIB_CURL
+	default n
+	---help---
+		curl
+
+if TOOLS_CURL
+
+config TOOLS_CURL_MANUAL
+	bool "Enable the curl --manual option, which is huge."
+	default n
+	---help---
+		curl --manual option may be helpful.
+
+config TOOLS_CURL_PROGNAME
+	string "Program name"
+	default "curl"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config TOOLS_CURL_PRIORITY
+	int "curl task priority"
+	default 100
+
+config TOOLS_CURL_STACKSIZE
+	int "curl stack size"
+	default 8192
+
+endif
