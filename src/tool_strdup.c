@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2015, 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -30,13 +30,18 @@ char *strdup(const char *str)
   if(!str)
     return (char *)NULL;
 
-  len = strlen(str) + 1;
+  len = strlen(str);
 
-  newstr = malloc(len);
+  if(len >= ((size_t)-1) / sizeof(char))
+    return (char *)NULL;
+
+  newstr = malloc((len + 1)*sizeof(char));
   if(!newstr)
     return (char *)NULL;
 
-  memcpy(newstr, str, len);
+  memcpy(newstr, str, (len + 1)*sizeof(char));
+
   return newstr;
+
 }
 #endif
