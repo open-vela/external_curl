@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -60,8 +60,9 @@ struct pingpong {
   size_t sendsize; /* total size of the sendthis buffer */
   struct curltime response; /* set to Curl_now() when a command has been sent
                                off, used to time-out response reading */
-  timediff_t response_time; /* When no timeout is given, this is the amount of
-                               milliseconds we await for a server response. */
+  long response_time; /* When no timeout is given, this is the amount of
+                         milliseconds we await for a server response. */
+
   struct connectdata *conn; /* points to the connectdata struct that this
                                belongs to */
 
@@ -88,7 +89,7 @@ void Curl_pp_init(struct pingpong *pp);
 
 /* Returns timeout in ms. 0 or negative number means the timeout has already
    triggered */
-timediff_t Curl_pp_state_timeout(struct pingpong *pp, bool disconnecting);
+time_t Curl_pp_state_timeout(struct pingpong *pp, bool disconnecting);
 
 
 /***********************************************************************
