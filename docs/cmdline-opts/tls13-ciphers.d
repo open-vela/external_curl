@@ -1,5 +1,5 @@
 Long: tls13-ciphers
-Arg: <ciphersuite list>
+Arg: <list of TLS 1.3 ciphersuites>
 help: TLS 1.3 cipher suites to use
 Protocols: TLS
 ---
