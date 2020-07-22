@@ -19,7 +19,7 @@ none
 abusing {}-globbing
  </name>
  <command>
-"%HOSTIP:%NOLISTENPORT/1234[0-1]{" "%HOSTIP:%NOLISTENPORT/{}{}{}{"
+"%HOSTIP:%HTTPPORT/1234[0-1]{" "%HOSTIP:%HTTPPORT/{}{}{}{"
 </command>
 </client>
 
