@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -35,11 +35,12 @@ typedef enum {
   TOOLMIME_STDINDATA
 } toolmimekind;
 
+typedef struct tool_mime        tool_mime;
 struct tool_mime {
   /* Structural fields. */
   toolmimekind kind;            /* Part kind. */
-  struct tool_mime *parent;     /* Parent item. */
-  struct tool_mime *prev;       /* Previous sibling (reverse order link). */
+  tool_mime *parent;            /* Parent item. */
+  tool_mime *prev;              /* Previous sibling (reverse order link). */
   /* Common fields. */
   const char *data;             /* Actual data or data filename. */
   const char *name;             /* Part name. */
@@ -48,7 +49,7 @@ struct tool_mime {
   const char *encoder;          /* Part's requested encoding. */
   struct curl_slist *headers;   /* User-defined headers. */
   /* TOOLMIME_PARTS fields. */
-  struct tool_mime *subparts;   /* Part's subparts. */
+  tool_mime *subparts;          /* Part's subparts. */
   /* TOOLMIME_STDIN/TOOLMIME_STDINDATA fields. */
   curl_off_t origin;            /* Stdin read origin offset. */
   curl_off_t size;              /* Stdin data size. */
@@ -62,10 +63,10 @@ int tool_mime_stdin_seek(void *instream, curl_off_t offset, int whence);
 
 int formparse(struct OperationConfig *config,
               const char *input,
-              struct tool_mime **mimeroot,
-              struct tool_mime **mimecurrent,
+              tool_mime **mimeroot,
+              tool_mime **mimecurrent,
               bool literal_value);
-CURLcode tool2curlmime(CURL *curl, struct tool_mime *m, curl_mime **mime);
-void tool_mime_free(struct tool_mime *mime);
+CURLcode tool2curlmime(CURL *curl, tool_mime *m, curl_mime **mime);
+void tool_mime_free(tool_mime *mime);
 
 #endif /* HEADER_CURL_TOOL_FORMPARSE_H */
