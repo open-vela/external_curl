@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2018 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2018 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -22,7 +22,6 @@
 #include "curlcheck.h"
 
 #include "doh.h"
-#include "dynbuf.h"
 
 static CURLcode unit_setup(void)
 {
@@ -34,7 +33,7 @@ static void unit_stop(void)
 
 }
 
-#ifndef CURL_DISABLE_DOH
+#ifdef USE_NGHTTP2
 #define DNS_PREAMBLE "\x00\x00\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00"
 #define LABEL_TEST "\x04\x74\x65\x73\x74"
 #define LABEL_HOST "\x04\x68\x6f\x73\x74"
@@ -185,8 +184,8 @@ UNITTEST_START
     char *ptr;
     size_t len;
     int u;
-    de_init(&d);
-    rc = doh_decode((const unsigned char *)resp[i].packet, resp[i].size,
+    memset(&d, 0, sizeof(d));
+    rc = doh_decode((unsigned char *)resp[i].packet, resp[i].size,
                     resp[i].type, &d);
     if(rc != resp[i].rc) {
       fprintf(stderr, "resp %zu: Expected return code %d got %d\n", i,
@@ -223,7 +222,7 @@ UNITTEST_START
     }
     for(u = 0; u < d.numcname; u++) {
       size_t o;
-      msnprintf(ptr, len, "%s ", Curl_dyn_ptr(&d.cname[u]));
+      msnprintf(ptr, len, "%s ", d.cname[u].alloc);
       o = strlen(ptr);
       len -= o;
       ptr += o;
@@ -242,7 +241,7 @@ UNITTEST_START
       struct dohentry d;
       int rc;
       memset(&d, 0, sizeof(d));
-      rc = doh_decode((const unsigned char *)full49, i, DNS_TYPE_A, &d);
+      rc = doh_decode((unsigned char *)full49, i, DNS_TYPE_A, &d);
       if(!rc) {
         /* none of them should work */
         fprintf(stderr, "%zu: %d\n", i, rc);
@@ -254,7 +253,7 @@ UNITTEST_START
       struct dohentry d;
       int rc;
       memset(&d, 0, sizeof(d));
-      rc = doh_decode((const unsigned char *)&full49[i], sizeof(full49)-i-1,
+      rc = doh_decode((unsigned char *)&full49[i], sizeof(full49)-i-1,
                       DNS_TYPE_A, &d);
       if(!rc) {
         /* none of them should work */
@@ -267,7 +266,7 @@ UNITTEST_START
       struct dohentry d;
       struct dohaddr *a;
       memset(&d, 0, sizeof(d));
-      rc = doh_decode((const unsigned char *)full49, sizeof(full49)-1,
+      rc = doh_decode((unsigned char *)full49, sizeof(full49)-1,
                       DNS_TYPE_A, &d);
       fail_if(d.numaddr != 1, "missing address");
       a = &d.addr[0];
@@ -284,7 +283,7 @@ UNITTEST_START
 }
 UNITTEST_STOP
 
-#else /* CURL_DISABLE_DOH */
+#else /* USE_NGHTTP2 */
 UNITTEST_START
 {
   return 1; /* nothing to do, just fail */
