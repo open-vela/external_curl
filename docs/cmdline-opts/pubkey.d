@@ -2,7 +2,6 @@ Long: pubkey
 Arg: <key>
 Protocols: SFTP SCP
 Help: SSH Public key file name
-Category: sftp scp auth
 ---
 Public key file name. Allows you to provide your public key in this separate
 file.
