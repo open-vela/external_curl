@@ -1,7 +1,6 @@
 Long: netrc
 Short: n
 Help: Must read .netrc for user name and password
-Category: curl
 ---
 Makes curl scan the \fI.netrc\fP (\fI_netrc\fP on Windows) file in the user's
 home directory for login name and password. This is typically used for FTP on

@@ -3,7 +3,6 @@ Short: k
 Help: Allow insecure server connections when using SSL
 Protocols: TLS
 See-also: proxy-insecure cacert
-Category: tls
 ---
 
 By default, every SSL connection curl makes is verified to be secure. This
