@@ -4,7 +4,6 @@ Arg: <filename>
 Help: Write the received headers to <filename>
 Protocols: HTTP FTP
 See-also: output
-Category: http ftp
 ---
 Write the received protocol headers to the specified file.
 

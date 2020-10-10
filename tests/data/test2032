@@ -66,7 +66,6 @@ Data connection 2: 402
 <client>
 <features>
 NTLM
-SSL
 !SSPI
 </features>
 <server>
@@ -95,6 +94,9 @@ chkhostname curlhost
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
 GET /20320100 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT

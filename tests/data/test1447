@@ -24,7 +24,7 @@ proxy
 Provide illegal proxy name 
  </name>
  <command>
---proxy "http://a:b@/x" http://%HOSTIP:%NOLISTENPORT
+--proxy "http://a:b@/x" http://%HOSTIP:%HTTPPORT
 </command>
 </client>
 

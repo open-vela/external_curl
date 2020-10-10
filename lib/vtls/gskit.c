@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -108,13 +108,13 @@ struct ssl_backend_data {
 #define BACKEND connssl->backend
 
 /* Supported ciphers. */
-struct gskit_cipher {
+typedef struct {
   const char *name;            /* Cipher name. */
   const char *gsktoken;        /* Corresponding token for GSKit String. */
   unsigned int versions;       /* SSL version flags. */
-};
+}  gskit_cipher;
 
-static const struct gskit_cipher  ciphertable[] = {
+static const gskit_cipher  ciphertable[] = {
   { "null-md5",         "01",
       CURL_GSKPROTO_SSLV3_MASK | CURL_GSKPROTO_TLSV10_MASK |
       CURL_GSKPROTO_TLSV11_MASK | CURL_GSKPROTO_TLSV12_MASK },
@@ -307,7 +307,7 @@ static CURLcode set_ciphers(struct connectdata *conn,
   struct Curl_easy *data = conn->data;
   const char *cipherlist = SSL_CONN_CONFIG(cipher_list);
   const char *clp;
-  const struct gskit_cipher *ctp;
+  const gskit_cipher *ctp;
   int i;
   int l;
   bool unsupported;
@@ -524,6 +524,7 @@ static int pipe_ssloverssl(struct connectdata *conn, int sockindex,
   int m;
   int i;
   int ret = 0;
+  struct timeval tv = {0, 0};
   char buf[CURL_MAX_WRITE_SIZE];
 
   if(!connssl->use || !connproxyssl->use)
@@ -543,7 +544,7 @@ static int pipe_ssloverssl(struct connectdata *conn, int sockindex,
     if(n < conn->sock[sockindex])
       n = conn->sock[sockindex];
   }
-  i = Curl_select(n + 1, &fds_read, &fds_write, NULL, 0);
+  i = select(n + 1, &fds_read, &fds_write, NULL, &tv);
   if(i < 0)
     return -1;  /* Select error. */
 
@@ -705,7 +706,7 @@ static CURLcode gskit_connect_step1(struct connectdata *conn, int sockindex)
   int rc;
   const char * const keyringfile = SSL_CONN_CONFIG(CAfile);
   const char * const keyringpwd = SSL_SET_OPTION(key_passwd);
-  const char * const keyringlabel = SSL_SET_OPTION(primary.clientcert);
+  const char * const keyringlabel = SSL_SET_OPTION(cert);
   const long int ssl_version = SSL_CONN_CONFIG(version);
   const bool verifypeer = SSL_CONN_CONFIG(verifypeer);
   const char * const hostname = SSL_IS_PROXY()? conn->http_proxy.host.name:
@@ -819,7 +820,7 @@ static CURLcode gskit_connect_step1(struct connectdata *conn, int sockindex)
   if(!result) {
     /* Compute the handshake timeout. Since GSKit granularity is 1 second,
        we round up the required value. */
-    timediff_t timeout = Curl_timeleft(data, NULL, TRUE);
+    long timeout = Curl_timeleft(data, NULL, TRUE);
     if(timeout < 0)
       result = CURLE_OPERATION_TIMEDOUT;
     else
@@ -932,7 +933,7 @@ static CURLcode gskit_connect_step2(struct connectdata *conn, int sockindex,
   /* Poll or wait for end of SSL asynchronous handshake. */
 
   for(;;) {
-    timediff_t timeout_ms = nonblocking? 0: Curl_timeleft(data, NULL, TRUE);
+    long timeout_ms = nonblocking? 0: Curl_timeleft(data, NULL, TRUE);
     if(timeout_ms < 0)
       timeout_ms = 0;
     stmv.tv_sec = timeout_ms / 1000;
