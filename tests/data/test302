@@ -24,7 +24,6 @@ And you should ignore this data.
 <client>
 <features>
 SSL
-proxy
 </features>
 <server>
 https
@@ -43,6 +42,9 @@ HTTPS GET over HTTP proxy fails
 <errorcode>
 56
 </errorcode>
+<strip>
+^User-Agent:.*
+</strip>
 <data>
 </data>
 </verify>

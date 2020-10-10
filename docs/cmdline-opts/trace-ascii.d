@@ -2,7 +2,6 @@ Long: trace-ascii
 Arg: <file>
 Help: Like --trace, but without hex output
 Mutexed: trace verbose
-Category: verbose
 ---
 Enables a full trace dump of all incoming and outgoing data, including
 descriptive information, to the given output file. Use "-" as filename to have

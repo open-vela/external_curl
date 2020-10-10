@@ -8,9 +8,6 @@ SMTP
 #
 # Server-side
 <reply>
-<servercmd>
-REPLY MAIL 501 not fine enough
-</servercmd>
 </reply>
 
 #

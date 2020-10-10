@@ -2,7 +2,6 @@ Long: request
 Short: X
 Arg: <command>
 Help: Specify request command to use
-Category: connection
 ---
 (HTTP) Specifies a custom request method to use when communicating with the
 HTTP server.  The specified request method will be used instead of the method

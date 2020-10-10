@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -44,19 +44,38 @@ char *Curl_copy_header_value(const char *header);
 
 char *Curl_checkProxyheaders(const struct connectdata *conn,
                              const char *thisheader);
-CURLcode Curl_buffer_send(struct dynbuf *in,
-                          struct connectdata *conn,
-                          curl_off_t *bytes_written,
-                          size_t included_body_bytes,
-                          int socketindex);
+/* ------------------------------------------------------------------------- */
+/*
+ * The add_buffer series of functions are used to build one large memory chunk
+ * from repeated function invokes. Used so that the entire HTTP request can
+ * be sent in one go.
+ */
+struct Curl_send_buffer {
+  char *buffer;
+  size_t size_max;
+  size_t size_used;
+};
+typedef struct Curl_send_buffer Curl_send_buffer;
+
+Curl_send_buffer *Curl_add_buffer_init(void);
+void Curl_add_buffer_free(Curl_send_buffer **inp);
+CURLcode Curl_add_bufferf(Curl_send_buffer **inp, const char *fmt, ...)
+  WARN_UNUSED_RESULT;
+CURLcode Curl_add_buffer(Curl_send_buffer **inp, const void *inptr,
+                         size_t size) WARN_UNUSED_RESULT;
+CURLcode Curl_add_buffer_send(Curl_send_buffer **inp,
+                              struct connectdata *conn,
+                              curl_off_t *bytes_written,
+                              size_t included_body_bytes,
+                              int socketindex);
 
 CURLcode Curl_add_timecondition(const struct connectdata *conn,
-                                struct dynbuf *buf);
+                                Curl_send_buffer *buf);
 CURLcode Curl_add_custom_headers(struct connectdata *conn,
                                  bool is_connect,
-                                 struct dynbuf *req_buffer);
+                                 Curl_send_buffer *req_buffer);
 CURLcode Curl_http_compile_trailers(struct curl_slist *trailers,
-                                    struct dynbuf *buf,
+                                    Curl_send_buffer **buffer,
                                     struct Curl_easy *handle);
 
 /* protocol-specific functions set up to be called by the main engine */
@@ -97,7 +116,7 @@ CURLcode Curl_http_auth_act(struct connectdata *conn);
  *
  */
 #ifndef EXPECT_100_THRESHOLD
-#define EXPECT_100_THRESHOLD (1024*1024)
+#define EXPECT_100_THRESHOLD 1024
 #endif
 
 #endif /* CURL_DISABLE_HTTP */
@@ -135,9 +154,9 @@ struct HTTP {
   } sending;
 
 #ifndef CURL_DISABLE_HTTP
-  struct dynbuf send_buffer; /* used if the request couldn't be sent in one
-                                chunk, points to an allocated send_buffer
-                                struct */
+  Curl_send_buffer *send_buffer; /* used if the request couldn't be sent in
+                                    one chunk, points to an allocated
+                                    send_buffer struct */
 #endif
 #ifdef USE_NGHTTP2
   /*********** for HTTP/2 we store stream-local data here *************/
@@ -145,10 +164,10 @@ struct HTTP {
 
   bool bodystarted;
   /* We store non-final and final response headers here, per-stream */
-  struct dynbuf header_recvbuf;
+  Curl_send_buffer *header_recvbuf;
   size_t nread_header_recvbuf; /* number of bytes in header_recvbuf fed into
                                   upper layer */
-  struct dynbuf trailer_recvbuf;
+  Curl_send_buffer *trailer_recvbuf;
   int status_code; /* HTTP status code */
   const uint8_t *pausedata; /* pointer to data received in on_data_chunk */
   size_t pauselen; /* the number of bytes left in data */
@@ -174,15 +193,12 @@ struct HTTP {
 #ifdef ENABLE_QUIC
   /*********** for HTTP/3 we store stream-local data here *************/
   int64_t stream3_id; /* stream we are interested in */
-  bool firstheader;  /* FALSE until headers arrive */
   bool firstbody;  /* FALSE until body arrives */
   bool h3req;    /* FALSE until request is issued */
   bool upload_done;
 #endif
 #ifdef USE_NGHTTP3
-  size_t unacked_window;
   struct h3out *h3out; /* per-stream buffers for upload */
-  struct dynbuf overflow; /* excess data received during a single Curl_read */
 #endif
 };
 

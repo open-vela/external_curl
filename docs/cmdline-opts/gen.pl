@@ -1,31 +1,10 @@
 #!/usr/bin/env perl
-#***************************************************************************
-#                                  _   _ ____  _
-#  Project                     ___| | | |  _ \| |
-#                             / __| | | | |_) | |
-#                            | (__| |_| |  _ <| |___
-#                             \___|\___/|_| \_\_____|
-#
-# Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
-#
-# This software is licensed as described in the file COPYING, which
-# you should have received as part of this distribution. The terms
-# are also available at https://curl.haxx.se/docs/copyright.html.
-#
-# You may opt to use, copy, modify, merge, publish, distribute and/or sell
-# copies of the Software, and permit persons to whom the Software is
-# furnished to do so, under the terms of the COPYING file.
-#
-# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
-# KIND, either express or implied.
-#
-###########################################################################
 
 =begin comment
 
 This script generates the manpage.
 
-Example: gen.pl <command> [files] > curl.1
+Example: gen.pl mainpage > curl.1
 
 Dev notes:
 
@@ -37,13 +16,18 @@ Unfortunately it seems some perls like msysgit can't handle a global input-only
 =end comment
 =cut
 
+my $some_dir=$ARGV[1] || ".";
+
+opendir(my $dh, $some_dir) || die "Can't opendir $some_dir: $!";
+my @s = grep { /\.d$/ && -f "$some_dir/$_" } readdir($dh);
+closedir $dh;
+
 my %optshort;
 my %optlong;
 my %helplong;
 my %arglong;
 my %redirlong;
 my %protolong;
-my %catlong;
 
 # get the long name version, return the man page string
 sub manpageify {
@@ -117,7 +101,7 @@ sub added {
 
 sub single {
     my ($f, $standalone)=@_;
-    open(F, "<:crlf", "$f") ||
+    open(F, "<:crlf", "$some_dir/$f") ||
         return 1;
     my $short;
     my $long;
@@ -127,7 +111,6 @@ sub single {
     my $arg;
     my $mutexed;
     my $requires;
-    my $category;
     my $seealso;
     my $magic; # cmdline special option
     while(<F>) {
@@ -161,18 +144,12 @@ sub single {
         elsif(/^Requires: *(.*)/i) {
             $requires=$1;
         }
-        elsif(/^Category: *(.*)/i) {
-            $category=$1;
-        }
         elsif(/^Help: *(.*)/i) {
             ;
         }
         elsif(/^---/) {
             if(!$long) {
                 print STDERR "WARN: no 'Long:' in $f\n";
-            }
-            if(!$category) {
-                print STDERR "WARN: no 'Category:' in $f\n";
             }
             last;
         }
@@ -224,24 +201,12 @@ sub single {
     if($seealso) {
         my @m=split(/ /, $seealso);
         my $mstr;
-        my $and = 0;
-        my $num = scalar(@m);
-        if($num > 2) {
-            # use commas up to this point
-            $and = $num - 1;
-        }
-        my $i = 0;
         for my $k (@m) {
             if(!$helplong{$k}) {
                 print STDERR "WARN: $f see-alsos a non-existing option: $k\n";
             }
             my $l = manpageify($k);
-            my $sep = " and";
-            if($and && ($i < $and)) {
-                $sep = ",";
-            }
-            $mstr .= sprintf "%s$l", $mstr?"$sep ":"";
-            $i++;
+            $mstr .= sprintf "%s$l", $mstr?" and ":"";
         }
         push @foot, seealso($standalone, $mstr);
     }
@@ -276,13 +241,12 @@ sub single {
 
 sub getshortlong {
     my ($f)=@_;
-    open(F, "<:crlf", "$f");
+    open(F, "<:crlf", "$some_dir/$f");
     my $short;
     my $long;
     my $help;
     my $arg;
     my $protocols;
-    my $category;
     while(<F>) {
         if(/^Short: (.)/i) {
             $short=$1;
@@ -299,9 +263,6 @@ sub getshortlong {
         elsif(/^Protocols: (.*)/i) {
             $protocols=$1;
         }
-        elsif(/^Category: (.*)/i) {
-            $category=$1;
-        }
         elsif(/^---/) {
             last;
         }
@@ -315,20 +276,18 @@ sub getshortlong {
         $helplong{$long}=$help;
         $arglong{$long}=$arg;
         $protolong{$long}=$protocols;
-        $catlong{$long}=$category;
     }
 }
 
 sub indexoptions {
-    my (@files) = @_;
-    foreach my $f (@files) {
-        getshortlong($f);
-    }
+  foreach my $f (@s) {
+    getshortlong($f);
+  }
 }
 
 sub header {
     my ($f)=@_;
-    open(F, "<:crlf", "$f");
+    open(F, "<:crlf", "$some_dir/$f");
     my @d;
     while(<F>) {
         push @d, $_;
@@ -341,8 +300,6 @@ sub listhelp {
     foreach my $f (sort keys %helplong) {
         my $long = $f;
         my $short = $optlong{$long};
-        my @categories = split ' ', $catlong{$long};
-        my $bitmask;
         my $opt;
 
         if(defined($short) && $long) {
@@ -351,13 +308,7 @@ sub listhelp {
         elsif($long && !$short) {
             $opt = "    --$long";
         }
-        for my $i (0 .. $#categories) {
-            $bitmask .= 'CURLHELP_' . uc $categories[$i];
-            # If not last element, append |
-            if($i < $#categories) {
-                $bitmask .= ' | ';
-            }
-        }
+
         my $arg = $arglong{$long};
         if($arg) {
             $opt .= " $arg";
@@ -365,7 +316,7 @@ sub listhelp {
         my $desc = $helplong{$f};
         $desc =~ s/\"/\\\"/g; # escape double quotes
 
-        my $line = sprintf "  {\"%s\",\n   \"%s\",\n   %s},\n", $opt, $desc, $bitmask;
+        my $line = sprintf "  {\"%s\",\n   \"%s\"},\n", $opt, $desc;
 
         if(length($opt) + length($desc) > 78) {
             print STDERR "WARN: the --$long line is too long\n";
@@ -374,35 +325,13 @@ sub listhelp {
     }
 }
 
-sub listcats {
-    my %allcats;
-    foreach my $f (sort keys %helplong) {
-        my @categories = split ' ', $catlong{$f};
-        foreach (@categories) {
-            $allcats{$_} = undef;
-        }
-    }
-    my @categories;
-    foreach my $key (keys %allcats) {
-        push @categories, $key;
-    }
-    @categories = sort @categories;
-    unshift @categories, 'hidden';
-    for my $i (0..$#categories) {
-        print '#define ' . 'CURLHELP_' . uc($categories[$i]) . ' ' . "1u << " . $i . "u\n";
-    }
-}
-
 sub mainpage {
-    my (@files) = @_;
     # show the page header
     header("page-header");
 
     # output docs for all options
-    foreach my $f (sort @files) {
-        if(single($f, 0)) {
-            print STDERR "Can't read $f?\n";
-        }
+    foreach my $f (sort @s) {
+        single($f, 0);
     }
 
     header("page-footer");
@@ -429,37 +358,33 @@ sub showprotocols {
 }
 
 sub getargs {
-    my ($f, @s) = @_;
-    if($f eq "mainpage") {
-        mainpage(@s);
-        return;
-    }
-    elsif($f eq "listhelp") {
-        listhelp();
-        return;
-    }
-    elsif($f eq "single") {
-        showonly($s[0]);
-        return;
-    }
-    elsif($f eq "protos") {
-        showprotocols();
-        return;
-    }
-    elsif($f eq "listcats") {
-        listcats();
-        return;
-    }
+    my $f;
+    do {
+        $f = shift @ARGV;
+        if($f eq "mainpage") {
+            mainpage();
+            return;
+        }
+        elsif($f eq "listhelp") {
+            listhelp();
+            return;
+        }
+        elsif($f eq "single") {
+            showonly(shift @ARGV);
+            return;
+        }
+        elsif($f eq "protos") {
+            showprotocols();
+            return;
+        }
+    } while($f);
 
-    print "Usage: gen.pl <mainpage/listhelp/single FILE/protos/listcats> [files]\n";
+    print "Usage: gen.pl <mainpage/listhelp/single FILE/protos> [srcdir]\n";
 }
 
 #------------------------------------------------------------------------
 
-my $cmd = shift @ARGV;
-my @files = @ARGV; # the rest are the files
-
 # learn all existing options
-indexoptions(@files);
+indexoptions();
 
-getargs($cmd, @files);
+getargs();

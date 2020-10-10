@@ -72,10 +72,12 @@ moo
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
 GET /20030001 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
 USER anonymous
@@ -102,7 +104,6 @@ SIZE 20030002
 RETR 20030002
 GET /20030001 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
 QUIT

@@ -44,6 +44,9 @@ http://%HOSTIP:%HTTPPORT/514
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
 HEAD /514 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
