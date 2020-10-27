@@ -2,7 +2,6 @@ Long: ssl
 Help: Try SSL/TLS
 Protocols: FTP IMAP POP3 SMTP
 Added: 7.20.0
-Category: tls
 ---
 
 Try to use SSL/TLS for the connection.  Reverts to a non-secure connection if

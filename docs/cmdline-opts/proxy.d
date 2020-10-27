@@ -2,7 +2,6 @@ Long: proxy
 Short: x
 Arg: [protocol://]host[:port]
 Help: Use this proxy
-Category: proxy
 ---
 Use the specified proxy.
 
