@@ -7,9 +7,6 @@ FTP
 
 # Server-side
 <reply>
-<servercmd>
-REPLY SIZE 500 command not understood
-</servercmd>
 </reply>
 
 # Client-side

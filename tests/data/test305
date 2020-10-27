@@ -25,6 +25,9 @@ https://%HOSTIP:%HTTPSPORT/want/305 --cacert moooo
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <errorcode>
 77
 </errorcode>

@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -44,7 +44,9 @@
 
 /* SSL backend-specific #if branches in this file must be kept in the order
    documented in curl_ntlm_core. */
-#if defined(USE_WINDOWS_SSPI)
+#if defined(NTLM_NEEDS_NSS_INIT)
+#include "vtls/nssg.h"
+#elif defined(USE_WINDOWS_SSPI)
 #include "curl_sspi.h"
 #endif
 
@@ -131,15 +133,17 @@ CURLcode Curl_output_ntlm(struct connectdata *conn, bool proxy)
   struct ntlmdata *ntlm;
   curlntlm *state;
   struct auth *authp;
-  struct Curl_easy *data = conn->data;
-
 
   DEBUGASSERT(conn);
-  DEBUGASSERT(data);
+  DEBUGASSERT(conn->data);
+
+#if defined(NTLM_NEEDS_NSS_INIT)
+  if(CURLE_OK != Curl_nss_force_init(conn->data))
+    return CURLE_OUT_OF_MEMORY;
+#endif
 
   if(proxy) {
-#ifndef CURL_DISABLE_PROXY
-    allocuserpwd = &data->state.aptr.proxyuserpwd;
+    allocuserpwd = &conn->allocptr.proxyuserpwd;
     userp = conn->http_proxy.user;
     passwdp = conn->http_proxy.passwd;
     service = conn->data->set.str[STRING_PROXY_SERVICE_NAME] ?
@@ -148,12 +152,9 @@ CURLcode Curl_output_ntlm(struct connectdata *conn, bool proxy)
     ntlm = &conn->proxyntlm;
     state = &conn->proxy_ntlm_state;
     authp = &conn->data->state.authproxy;
-#else
-    return CURLE_NOT_BUILT_IN;
-#endif
   }
   else {
-    allocuserpwd = &data->state.aptr.userpwd;
+    allocuserpwd = &conn->allocptr.userpwd;
     userp = conn->user;
     passwdp = conn->passwd;
     service = conn->data->set.str[STRING_SERVICE_NAME] ?
