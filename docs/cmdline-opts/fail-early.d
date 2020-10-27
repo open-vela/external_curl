@@ -1,7 +1,6 @@
 Long: fail-early
 Help: Fail on first transfer error, do not continue
 Added: 7.52.0
-Category: curl
 ---
 Fail and exit on the first detected transfer error.
 

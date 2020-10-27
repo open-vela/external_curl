@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1999 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1999 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -36,7 +36,6 @@
  */
 
 #include "curl_setup.h"
-#include "dynbuf.h"
 #include <curl/mprintf.h>
 
 #include "curl_memory.h"
@@ -99,13 +98,13 @@ static const char lower_digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 /* Upper-case digits.  */
 static const char upper_digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-#define OUTCHAR(x)                                     \
-  do {                                                 \
+#define OUTCHAR(x) \
+  do{ \
     if(stream((unsigned char)(x), (FILE *)data) != -1) \
-      done++;                                          \
-    else                                               \
-      return done; /* return immediately on failure */ \
-  } while(0)
+      done++; \
+    else \
+     return done; /* return immediately on failure */ \
+  } WHILE_FALSE
 
 /* Data type to read from the arglist */
 typedef enum {
@@ -146,7 +145,7 @@ enum {
   FLAGS_FLOATG     = 1<<19  /* %g or %G */
 };
 
-struct va_stack {
+typedef struct {
   FormatType type;
   int flags;
   long width;     /* width OR width parameter number */
@@ -160,7 +159,7 @@ struct va_stack {
     } num;
     double dnum;
   } data;
-};
+} va_stack_t;
 
 struct nsprintf {
   char *buffer;
@@ -169,23 +168,23 @@ struct nsprintf {
 };
 
 struct asprintf {
-  struct dynbuf *b;
-  bool fail; /* if an alloc has failed and thus the output is not the complete
-                data */
+  char *buffer; /* allocated buffer */
+  size_t len;   /* length of string */
+  size_t alloc; /* length of alloc */
+  int fail;     /* (!= 0) if an alloc has failed and thus
+                   the output is not the complete data */
 };
 
 static long dprintf_DollarString(char *input, char **end)
 {
   int number = 0;
   while(ISDIGIT(*input)) {
-    if(number < MAX_PARAMETERS) {
-      number *= 10;
-      number += *input - '0';
-    }
+    number *= 10;
+    number += *input-'0';
     input++;
   }
-  if(number <= MAX_PARAMETERS && ('$' == *input)) {
-    *end = ++input;
+  if(number && ('$'==*input++)) {
+    *end = input;
     return number;
   }
   return 0;
@@ -225,8 +224,8 @@ static bool dprintf_IsQualifierNoDollar(const char *fmt)
  *
  ******************************************************************/
 
-static int dprintf_Pass1(const char *format, struct va_stack *vto,
-                         char **endpos, va_list arglist)
+static int dprintf_Pass1(const char *format, va_stack_t *vto, char **endpos,
+                         va_list arglist)
 {
   char *fmt = (char *)format;
   int param_num = 0;
@@ -379,8 +378,6 @@ static int dprintf_Pass1(const char *format, struct va_stack *vto,
           if(width > max_param)
             max_param = width;
           break;
-        case '\0':
-          fmt--;
         default:
           break;
         }
@@ -462,9 +459,6 @@ static int dprintf_Pass1(const char *format, struct va_stack *vto,
         /* we have the width specified from a parameter, so we make that
            parameter's info setup properly */
         long k = width - 1;
-        if((k < 0) || (k >= MAX_PARAMETERS))
-          /* out of allowed range */
-          return 1;
         vto[i].width = k;
         vto[k].type = FORMAT_WIDTH;
         vto[k].flags = FLAGS_NEW;
@@ -476,9 +470,6 @@ static int dprintf_Pass1(const char *format, struct va_stack *vto,
         /* we have the precision specified from a parameter, so we make that
            parameter's info setup properly */
         long k = precision - 1;
-        if((k < 0) || (k >= MAX_PARAMETERS))
-          /* out of allowed range */
-          return 1;
         vto[i].precision = k;
         vto[k].type = FORMAT_WIDTH;
         vto[k].flags = FLAGS_NEW;
@@ -486,7 +477,7 @@ static int dprintf_Pass1(const char *format, struct va_stack *vto,
         vto[k].width = 0;
         vto[k].precision = 0;
       }
-      *endpos++ = fmt + ((*fmt == '\0') ? 0 : 1); /* end of this sequence */
+      *endpos++ = fmt + 1; /* end of this sequence */
     }
   }
 
@@ -580,11 +571,13 @@ static int dprintf_formatf(
   long param; /* current parameter to read */
   long param_num = 0; /* parameter counter */
 
-  struct va_stack vto[MAX_PARAMETERS];
+  va_stack_t vto[MAX_PARAMETERS];
   char *endpos[MAX_PARAMETERS];
   char **end;
+
   char work[BUFFSIZE];
-  struct va_stack *p;
+
+  va_stack_t *p;
 
   /* 'workend' points to the final buffer byte position, but with an extra
      byte as margin to avoid the (false?) warning Coverity gives us
@@ -764,7 +757,7 @@ static int dprintf_formatf(
 
       if(prec > 0) {
         width -= prec;
-        while(prec-- > 0 && w >= work)
+        while(prec-- > 0)
           *w-- = '0';
       }
 
@@ -878,7 +871,7 @@ static int dprintf_formatf(
               OUTCHAR(' ');
           for(point = strnil; *point != '\0'; ++point)
             OUTCHAR(*point);
-          if(!(p->flags & FLAGS_LEFT))
+          if(! (p->flags & FLAGS_LEFT))
             while(width-- > 0)
               OUTCHAR(' ');
         }
@@ -928,8 +921,6 @@ static int dprintf_formatf(
              precision */
           size_t maxprec = sizeof(work) - 2;
           double val = p->data.dnum;
-          if(width > 0 && prec <= width)
-            maxprec -= width;
           while(val >= 10.0) {
             val /= 10;
             maxprec--;
@@ -937,8 +928,6 @@ static int dprintf_formatf(
 
           if(prec > (long)maxprec)
             prec = (long)maxprec-1;
-          if(prec < 0)
-            prec = 0;
           /* RECURSIVE USAGE */
           len = curl_msnprintf(fptr, left, ".%ld", prec);
           fptr += len;
@@ -1042,59 +1031,86 @@ static int alloc_addbyter(int output, FILE *data)
   struct asprintf *infop = (struct asprintf *)data;
   unsigned char outc = (unsigned char)output;
 
-  if(Curl_dyn_addn(infop->b, &outc, 1)) {
-    infop->fail = 1;
-    return -1; /* fail */
+  if(!infop->buffer) {
+    infop->buffer = malloc(32);
+    if(!infop->buffer) {
+      infop->fail = 1;
+      return -1; /* fail */
+    }
+    infop->alloc = 32;
+    infop->len = 0;
   }
+  else if(infop->len + 1 >= infop->alloc) {
+    char *newptr = NULL;
+    size_t newsize = infop->alloc*2;
+
+    /* detect wrap-around or other overflow problems */
+    if(newsize > infop->alloc)
+      newptr = realloc(infop->buffer, newsize);
+
+    if(!newptr) {
+      infop->fail = 1;
+      return -1; /* fail */
+    }
+    infop->buffer = newptr;
+    infop->alloc = newsize;
+  }
+
+  infop->buffer[ infop->len ] = outc;
+
+  infop->len++;
+
   return outc; /* fputc() returns like this on success */
 }
 
-extern int Curl_dyn_vprintf(struct dynbuf *dyn,
-                            const char *format, va_list ap_save);
-
-/* appends the formatted string, returns 0 on success, 1 on error */
-int Curl_dyn_vprintf(struct dynbuf *dyn, const char *format, va_list ap_save)
+char *curl_maprintf(const char *format, ...)
 {
+  va_list ap_save; /* argument pointer */
   int retcode;
   struct asprintf info;
-  info.b = dyn;
+
+  info.buffer = NULL;
+  info.len = 0;
+  info.alloc = 0;
   info.fail = 0;
 
+  va_start(ap_save, format);
   retcode = dprintf_formatf(&info, alloc_addbyter, format, ap_save);
+  va_end(ap_save);
   if((-1 == retcode) || info.fail) {
-    Curl_dyn_free(info.b);
-    return 1;
+    if(info.alloc)
+      free(info.buffer);
+    return NULL;
   }
-  return 0;
+  if(info.alloc) {
+    info.buffer[info.len] = 0; /* we terminate this with a zero byte */
+    return info.buffer;
+  }
+  return strdup("");
 }
 
 char *curl_mvaprintf(const char *format, va_list ap_save)
 {
   int retcode;
   struct asprintf info;
-  struct dynbuf dyn;
-  info.b = &dyn;
-  Curl_dyn_init(info.b, DYN_APRINTF);
+
+  info.buffer = NULL;
+  info.len = 0;
+  info.alloc = 0;
   info.fail = 0;
 
   retcode = dprintf_formatf(&info, alloc_addbyter, format, ap_save);
   if((-1 == retcode) || info.fail) {
-    Curl_dyn_free(info.b);
+    if(info.alloc)
+      free(info.buffer);
     return NULL;
   }
-  if(Curl_dyn_len(info.b))
-    return Curl_dyn_ptr(info.b);
-  return strdup("");
-}
 
-char *curl_maprintf(const char *format, ...)
-{
-  va_list ap_save;
-  char *s;
-  va_start(ap_save, format);
-  s = curl_mvaprintf(format, ap_save);
-  va_end(ap_save);
-  return s;
+  if(info.alloc) {
+    info.buffer[info.len] = 0; /* we terminate this with a zero byte */
+    return info.buffer;
+  }
+  return strdup("");
 }
 
 static int storebuffer(int output, FILE *data)

@@ -40,6 +40,9 @@ more than one byte
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
 PUT /bzz/1591 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
