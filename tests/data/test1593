@@ -35,6 +35,9 @@ http://%HOSTIP:%HTTPPORT/1593
 </client>
 
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 # Note here the lack of If-Modified-Since
 <protocol>
 GET /1593 HTTP/1.1
