@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -33,14 +33,12 @@
 #define OS "plan9"
 #define PACKAGE "curl"
 #define PACKAGE_NAME "curl"
-#define PACKAGE_BUGREPORT "a suitable mailing list: https://curl.haxx.se/mail/"
+#define PACKAGE_BUGREPORT "a suitable mailing list: https://curl.se/mail/"
 #define PACKAGE_STRING "curl -"
 #define PACKAGE_TARNAME "curl"
 #define PACKAGE_VERSION "-"
 #define RANDOM_FILE "/dev/random"
 #define VERSION "0.0.0" /* TODO */
-
-#define RETSIGTYPE void
 
 #define STDC_HEADERS 1
 
@@ -102,7 +100,6 @@
 #define HAVE_BASENAME 1
 #define HAVE_BOOL_T 1
 #define HAVE_CRYPTO_CLEANUP_ALL_EX_DATA 1
-#define HAVE_ENGINE_LOAD_BUILTIN_ENGINES 1
 #define HAVE_ERRNO_H 1
 #define HAVE_FCNTL 1
 #define HAVE_FCNTL_H 1
@@ -139,7 +136,6 @@
 
 #define USE_OPENSSL 1
 #define HAVE_OPENSSL_CRYPTO_H 1
-#define HAVE_OPENSSL_ENGINE_H 1
 #define HAVE_OPENSSL_ERR_H 1
 #define HAVE_OPENSSL_PEM_H 1
 #define HAVE_OPENSSL_PKCS12_H 1
@@ -175,7 +171,6 @@
 #define HAVE_STRCASECMP 1
 #define HAVE_STRDUP 1
 #define HAVE_STRING_H 1
-#define HAVE_STRNCASECMP 1
 #define HAVE_STRSTR 1
 #define HAVE_STRTOK_R 1
 #define HAVE_STRTOLL 1
@@ -204,7 +199,6 @@
 #define STRERROR_R_TYPE_ARG3 int
 
 #define TIME_WITH_SYS_TIME 1
-#define USE_BLOCKING_SOCKETS 1
 #define USE_MANUAL 1
 
 #define __attribute__(x)
