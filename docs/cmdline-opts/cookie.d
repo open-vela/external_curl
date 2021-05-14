@@ -3,7 +3,6 @@ Long: cookie
 Arg: <data|filename>
 Protocols: HTTP
 Help: Send cookies from string/file
-Category: http
 ---
 Pass the data to the HTTP server in the Cookie header. It is supposedly
 the data previously received from the server in a "Set-Cookie:" line.  The
@@ -14,7 +13,7 @@ to read previously stored cookie from. This option also activates the cookie
 engine which will make curl record incoming cookies, which may be handy if
 you're using this in combination with the --location option or do multiple URL
 transfers on the same invoke. If the file name is exactly a minus ("-"), curl
-will instead read the contents from stdin.
+will instead the contents from stdin.
 
 The file format of the file to read cookies from should be plain HTTP headers
 (Set-Cookie style) or the Netscape/Mozilla cookie file format.
@@ -31,7 +30,7 @@ name then both will be sent on a future transfer to that server, likely not
 what you intended.  To address these issues set a domain in Set-Cookie (doing
 that will include sub domains) or use the Netscape format.
 
-This option can be used multiple times.
+If this option is used several times, the last one will be used.
 
 Users very often want to both read cookies from a file and write updated
 cookies back to a file, so using both --cookie and --cookie-jar in the same

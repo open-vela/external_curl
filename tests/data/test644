@@ -22,14 +22,14 @@ http
 </server>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib644
 </tool>
 
  <name>
 HTTP multi-part formpost with aborted read callback
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/644
 </command>
 </client>
 
@@ -41,15 +41,14 @@ s/^--------------------------[a-z0-9]*/------------------------------/
 s/boundary=------------------------[a-z0-9]*/boundary=----------------------------/
 </strippart>
 <protocol>
-POST /%TESTNUMBER HTTP/1.1
+POST /644 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
-Content-Length: 640
+Content-Length: 718
 Content-Type: multipart/form-data; boundary=----------------------------
 
 ------------------------------
 Content-Disposition: form-data; name="sendfile"; filename="postit2.c"
-
 
 </protocol>
 # CURLE_ABORTED_BY_CALLBACK (42)

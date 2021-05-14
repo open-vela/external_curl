@@ -22,13 +22,12 @@ imap
 ldap
 dict
 ftp
-ipv6
 </features>
  <name>
 URL API
  </name>
 <tool>
-lib%TESTNUMBER
+lib1560
 </tool>
 </client>
 

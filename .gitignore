@@ -14,18 +14,18 @@
 .cproject
 .deps
 .dirstamp
+.kconfig
 .libs
 .project
 .settings
 /.vs
 /build/
 /builds/
-/stats/
 __pycache__
 CHANGES.dist
 Debug
 INSTALL
-Makefile
+Kconfig
 Makefile.in
 Release
 TAGS
@@ -62,3 +62,4 @@ src/Make.dep
 curl_fuzzer
 curl_fuzzer_seed_corpus.zip
 libstandaloneengine.a
+.checksrc

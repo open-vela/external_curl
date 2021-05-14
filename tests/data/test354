@@ -30,7 +30,7 @@ ftp
 FTP without password
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/354
 </command>
 
 </client>
@@ -42,8 +42,8 @@ USER anonymous
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 354
+RETR 354
 QUIT
 </protocol>
 </verify>

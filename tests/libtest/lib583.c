@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -21,7 +21,7 @@
  ***************************************************************************/
 /*
  * This test case is based on the sample code provided by Saqib Ali
- * https://curl.se/mail/lib-2011-03/0066.html
+ * https://curl.haxx.se/mail/lib-2011-03/0066.html
  */
 
 #include "test.h"
@@ -35,8 +35,7 @@ int test(char *URL)
   int stillRunning;
   CURLM *multiHandle = NULL;
   CURL *curl = NULL;
-  CURLcode res = CURLE_OK;
-  CURLMcode mres;
+  CURLMcode res = CURLM_OK;
 
   global_init(CURL_GLOBAL_ALL);
 
@@ -66,12 +65,10 @@ int test(char *URL)
   fprintf(stderr, "curl_multi_perform() succeeded\n");
 
   fprintf(stderr, "curl_multi_remove_handle()...\n");
-  mres = curl_multi_remove_handle(multiHandle, curl);
-  if(mres) {
+  res = curl_multi_remove_handle(multiHandle, curl);
+  if(res)
     fprintf(stderr, "curl_multi_remove_handle() failed, "
-            "with code %d\n", (int)mres);
-    res = TEST_ERR_MULTI;
-  }
+            "with code %d\n", (int)res);
   else
     fprintf(stderr, "curl_multi_remove_handle() succeeded\n");
 
