@@ -27,7 +27,7 @@ ftp
 FTP with excessively large server command response line
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/path/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/path/1003
 </command>
 </client>
 
@@ -40,8 +40,8 @@ PWD
 CWD path
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 1003
+RETR 1003
 QUIT
 </protocol>
 </verify>
