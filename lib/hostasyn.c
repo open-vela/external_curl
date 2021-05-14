@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -66,23 +66,25 @@
  *
  * The storage operation locks and unlocks the DNS cache.
  */
-CURLcode Curl_addrinfo_callback(struct Curl_easy *data,
+CURLcode Curl_addrinfo_callback(struct connectdata *conn,
                                 int status,
                                 struct Curl_addrinfo *ai)
 {
   struct Curl_dns_entry *dns = NULL;
   CURLcode result = CURLE_OK;
 
-  data->state.async.status = status;
+  conn->async.status = status;
 
   if(CURL_ASYNC_SUCCESS == status) {
     if(ai) {
+      struct Curl_easy *data = conn->data;
+
       if(data->share)
         Curl_share_lock(data, CURL_LOCK_DATA_DNS, CURL_LOCK_ACCESS_SINGLE);
 
       dns = Curl_cache_addr(data, ai,
-                            data->state.async.hostname,
-                            data->state.async.port);
+                            conn->async.hostname,
+                            conn->async.port);
       if(data->share)
         Curl_share_unlock(data, CURL_LOCK_DATA_DNS);
 
@@ -97,12 +99,12 @@ CURLcode Curl_addrinfo_callback(struct Curl_easy *data,
     }
   }
 
-  data->state.async.dns = dns;
+  conn->async.dns = dns;
 
  /* Set async.done TRUE last in this function since it may be used multi-
     threaded and once this is TRUE the other thread may read fields from the
     async struct */
-  data->state.async.done = TRUE;
+  conn->async.done = TRUE;
 
   /* IPv4: The input hostent struct will be freed by ares when we return from
      this function */
@@ -115,12 +117,12 @@ CURLcode Curl_addrinfo_callback(struct Curl_easy *data,
  * name resolve layers (selected at build-time). They all take this same set
  * of arguments
  */
-struct Curl_addrinfo *Curl_getaddrinfo(struct Curl_easy *data,
-                                       const char *hostname,
-                                       int port,
-                                       int *waitp)
+Curl_addrinfo *Curl_getaddrinfo(struct connectdata *conn,
+                                const char *hostname,
+                                int port,
+                                int *waitp)
 {
-  return Curl_resolver_getaddrinfo(data, hostname, port, waitp);
+  return Curl_resolver_getaddrinfo(conn, hostname, port, waitp);
 }
 
 #endif /* CURLRES_ASYNCH */

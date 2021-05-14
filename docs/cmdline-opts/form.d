@@ -4,7 +4,6 @@ Arg: <name=content>
 Help: Specify multipart MIME data
 Protocols: HTTP SMTP IMAP
 Mutexed: data head upload-file
-Category: http upload
 ---
 For HTTP protocol family, this lets curl emulate a filled-in form in which a
 user has pressed the submit button. This causes curl to POST data using the
@@ -34,11 +33,11 @@ form-field to which the file portrait.jpg will be the input:
 
  curl -F profile=@portrait.jpg https://example.com/upload.cgi
 
-Example: send your name and shoe size in two text fields to the server:
+Example: send a your name and shoe size in two text fields to the server:
 
  curl -F name=John -F shoesize=11 https://example.com/
 
-Example: send your essay in a text field to the server. Send it as a plain
+Example: send a your essay in a text field to the server. Send it as a plain
 text field, but get the contents for it from a local file:
 
  curl -F "story=<hugefile.txt" https://example.com/
@@ -121,11 +120,11 @@ text file:
       -F '=)' -F '=@textfile.txt' ...  smtp://example.com
 
 Data can be encoded for transfer using encoder=. Available encodings are
-*binary* and *8bit* that do nothing else than adding the corresponding
-Content-Transfer-Encoding header, *7bit* that only rejects 8-bit characters
-with a transfer error, *quoted-printable* and *base64* that encodes data
-according to the corresponding schemes, limiting lines length to 76
-characters.
+\fIbinary\fP and \fI8bit\fP that do nothing else than adding the corresponding
+Content-Transfer-Encoding header, \fI7bit\fP that only rejects 8-bit characters
+with a transfer error, \fIquoted-printable\fP and \fIbase64\fP that encodes
+data according to the corresponding schemes, limiting lines length to
+76 characters.
 
 Example: send multipart mail with a quoted-printable text message and a
 base64 attached file:

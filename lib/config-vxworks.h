@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -55,6 +55,9 @@
 
 /* to disable LDAPS */
 #define CURL_DISABLE_LDAPS 1
+
+/* to disable NTLM authentication */
+#define CURL_DISABLE_NTLM 1
 
 /* to disable proxies */
 /* #undef CURL_DISABLE_PROXY */
@@ -134,8 +137,14 @@
 /* Define to 1 if you have the <crypto.h> header file. */
 /* #undef HAVE_CRYPTO_H */
 
+/* Define to 1 if you have the <des.h> header file. */
+/* #undef HAVE_DES_H */
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
+
+/* Define to 1 if you have the `ENGINE_load_builtin_engines' function. */
+#define HAVE_ENGINE_LOAD_BUILTIN_ENGINES 1
 
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
@@ -272,6 +281,15 @@
 /* Define to 1 if you have the `inet_addr' function. */
 #define HAVE_INET_ADDR 1
 
+/* Define to 1 if you have the inet_ntoa_r function. */
+/* #undef HAVE_INET_NTOA_R */
+
+/* inet_ntoa_r() takes 2 args */
+/* #undef HAVE_INET_NTOA_R_2 */
+
+/* inet_ntoa_r() takes 3 args */
+/* #undef HAVE_INET_NTOA_R_3 */
+
 /* Define to 1 if you have a IPv6 capable working inet_ntop function. */
 /* #undef HAVE_INET_NTOP */
 
@@ -402,6 +420,9 @@
 
 /* Define to 1 if you have the <openssl/crypto.h> header file. */
 #define HAVE_OPENSSL_CRYPTO_H 1
+
+/* Define to 1 if you have the <openssl/engine.h> header file. */
+#define HAVE_OPENSSL_ENGINE_H 1
 
 /* Define to 1 if you have the <openssl/err.h> header file. */
 #define HAVE_OPENSSL_ERR_H 1
@@ -552,6 +573,12 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
+
+/* Define to 1 if you have the `strlcpy' function. */
+/* #undef HAVE_STRLCPY */
+
+/* Define to 1 if you have the strncasecmp function. */
+#define HAVE_STRNCASECMP 1
 
 /* Define to 1 if you have the strncmpi function. */
 /* #undef HAVE_STRNCMPI */
@@ -757,6 +784,9 @@
 /* Define to the function return type for recv. */
 #define RECV_TYPE_RETV int
 
+/* Define as the return type of signal handlers (`int' or `void'). */
+#define RETSIGTYPE void
+
 /* Define to the type qualifier of arg 5 for select. */
 #define SELECT_QUAL_ARG5
 
@@ -819,6 +849,9 @@
 
 /* Define if you want to enable c-ares support */
 /* #undef USE_ARES */
+
+/* Define to disable non-blocking sockets. */
+/* #undef USE_BLOCKING_SOCKETS */
 
 /* if GnuTLS is enabled */
 /* #undef USE_GNUTLS */

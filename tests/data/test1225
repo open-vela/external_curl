@@ -27,7 +27,7 @@ ftp
 FTP fetch two files using absolute paths
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT//foo/%TESTNUMBER ftp://%HOSTIP:%FTPPORT//foo/bar/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT//foo/1225 ftp://%HOSTIP:%FTPPORT//foo/bar/1225
 </command>
 
 </client>
@@ -42,14 +42,14 @@ CWD /
 CWD foo
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 1225
+RETR 1225
 CWD /
 CWD foo
 CWD bar
 EPSV
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 1225
+RETR 1225
 QUIT
 </protocol>
 </verify>

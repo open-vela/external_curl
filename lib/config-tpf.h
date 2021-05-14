@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -114,6 +114,14 @@
 /* Define to 1 if you have the <crypto.h> header file. */
 /* #undef HAVE_CRYPTO_H */
 #define HAVE_CRYPTO_H 1
+
+/* Define to 1 if you have the <des.h> header file. */
+/* #undef HAVE_DES_H */
+#define HAVE_DES_H 1
+
+/* Define to 1 if you have the `ENGINE_load_builtin_engines' function. */
+/* #undef HAVE_ENGINE_LOAD_BUILTIN_ENGINES */
+#define HAVE_ENGINE_LOAD_BUILTIN_ENGINES 1
 
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
@@ -312,6 +320,10 @@
 /* #undef HAVE_OPENSSL_CRYPTO_H */
 #define HAVE_OPENSSL_CRYPTO_H 1
 
+/* Define to 1 if you have the <openssl/engine.h> header file. */
+/* #undef HAVE_OPENSSL_ENGINE_H */
+#define HAVE_OPENSSL_ENGINE_H 1
+
 /* Define to 1 if you have the <openssl/err.h> header file. */
 /* #undef HAVE_OPENSSL_ERR_H */
 #define HAVE_OPENSSL_ERR_H 1
@@ -450,6 +462,9 @@
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
 
+/* Define to 1 if you have the `strlcpy' function. */
+/* #undef HAVE_STRLCPY */
+
 /* Define to 1 if you have the `strstr' function. */
 #define HAVE_STRSTR 1
 
@@ -558,7 +573,7 @@
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT \
-  "a suitable curl mailing list => https://curl.se/mail/"
+  "a suitable curl mailing list => https://curl.haxx.se/mail/"
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "curl"
@@ -574,6 +589,9 @@
 
 /* a suitable file to read random data from */
 /* #undef RANDOM_FILE */
+
+/* Define as the return type of signal handlers (`int' or `void'). */
+#define RETSIGTYPE void
 
 /* Define to the type of arg 1 for `select'. */
 #define SELECT_TYPE_ARG1 int
@@ -610,6 +628,9 @@
 
 /* Define if you want to enable ares support */
 /* #undef USE_ARES */
+
+/* Define to disable non-blocking sockets */
+/* #undef USE_BLOCKING_SOCKETS */
 
 /* if GnuTLS is enabled */
 /* #undef USE_GNUTLS */
