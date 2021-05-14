@@ -2,9 +2,9 @@
 
 ## Simple Usage
 
-Get the main page from a web-server:
+Get the main page from Netscape's web-server:
 
-    curl https://www.example.com/
+    curl http://www.netscape.com/
 
 Get the README file the user's home directory at funet's ftp-server:
 
@@ -16,7 +16,7 @@ Get a web page from a server using port 8000:
 
 Get a directory listing of an FTP site:
 
-    curl ftp://ftp.funet.fi
+    curl ftp://cool.haxx.se/
 
 Get the definition of curl from a dictionary:
 
@@ -24,7 +24,7 @@ Get the definition of curl from a dictionary:
 
 Fetch two documents at once:
 
-    curl ftp://ftp.funet.fi/ http://www.weirdserver.com:8000/
+    curl ftp://cool.haxx.se/ http://www.weirdserver.com:8000/
 
 Get a file off an FTPS server:
 
@@ -61,17 +61,17 @@ Get a file from an SMB server:
 
 Get a web page and store in a local file with a specific name:
 
-    curl -o thatpage.html http://www.example.com/
+    curl -o thatpage.html http://www.netscape.com/
 
 Get a web page and store in a local file, make the local file get the name of
 the remote document (if no file name part is specified in the URL, this will
 fail):
 
-    curl -O http://www.example.com/index.html
+    curl -O http://www.netscape.com/index.html
 
 Fetch two files and store them with their remote names:
 
-    curl -O www.haxx.se/index.html -O curl.se/download.html
+    curl -O www.haxx.se/index.html -O curl.haxx.se/download.html
 
 ## Using Passwords
 
@@ -273,7 +273,7 @@ will then store the headers in the specified file.
 
 Store the HTTP headers in a separate file (headers.txt in the example):
 
-      curl --dump-header headers.txt curl.se
+      curl --dump-header headers.txt curl.haxx.se
 
 Note that headers stored in a separate file can be very useful at a later time
 if you want curl to use cookies sent by the server. More about that in the
@@ -307,14 +307,12 @@ Example:
 
 (page located at `http://www.formpost.com/getthis/`)
 
-```html
-<form action="post.cgi" method="post">
-<input name=user size=10>
-<input name=pass type=password size=10>
-<input name=id type=hidden value="blablabla">
-<input name=ding value="submit">
-</form>
-```
+    <form action="post.cgi" method="post">
+    <input name=user size=10>
+    <input name=pass type=password size=10>
+    <input name=id type=hidden value="blablabla">
+    <input name=ding value="submit">
+    </form>
 
 We want to enter user 'foobar' with password '12345'.
 
@@ -421,9 +419,7 @@ if it should be used on secure connections only (`secure`).
 
 If you've received a page from a server that contains a header like:
 
-```http
-Set-Cookie: sessionid=boo123; path="/foo";
-```
+    Set-Cookie: sessionid=boo123; path="/foo";
 
 it means the server wants that first pair passed on when we get anything in a
 path beginning with "/foo".
@@ -560,7 +556,7 @@ Example, set default time out and proxy in a config file:
     # ... and we use a proxy for all accesses:
     proxy = proxy.our.domain.com:8080
 
-Whitespaces ARE significant at the end of lines, but all whitespace leading
+White spaces ARE significant at the end of lines, but all white spaces leading
 up to the first characters of each line are ignored.
 
 Prevent curl from reading the default file by using -q as the first command
@@ -661,11 +657,11 @@ Download with `PORT` but use 192.168.0.10 as our IP address to use:
 
 Get a web page from a server using a specified port for the interface:
 
-    curl --interface eth0:1 http://www.example.com/
+    curl --interface eth0:1 http://www.netscape.com/
 
 or
 
-    curl --interface 192.168.1.10 http://www.example.com/
+    curl --interface 192.168.1.10 http://www.netscape.com/
 
 ## HTTPS
 
@@ -705,7 +701,7 @@ Otherwise, curl will attempt to use a sensible TLS default version.
 ## Resuming File Transfers
 
 To continue a file transfer where it was previously aborted, curl supports
-resume on HTTP(S) downloads as well as FTP uploads and downloads.
+esume on HTTP(S) downloads as well as FTP uploads and downloads.
 
 Continue downloading a document:
 
@@ -749,7 +745,7 @@ For fun try
 
     curl dict://dict.org/m:curl
     curl dict://dict.org/d:heisenbug:jargon
-    curl dict://dict.org/d:daniel:gcide
+    curl dict://dict.org/d:daniel:web1913
 
 Aliases for 'm' are 'match' and 'find', and aliases for 'd' are 'define' and
 'lookup'. For example,
@@ -776,7 +772,7 @@ fallback mechanism in case if LDAPv3 will fail to connect.
 LDAP is a complex thing and writing an LDAP query is not an easy task. I do
 advise you to dig up the syntax description for that elsewhere. One such place
 might be: [RFC 2255, The LDAP URL
-Format](https://curl.se/rfc/rfc2255.txt)
+Format](https://curl.haxx.se/rfc/rfc2255.txt)
 
 To show you an example, this is how I can get all people from my local LDAP
 server that has a certain sub-domain in their email address:
@@ -841,7 +837,7 @@ use it for all protocols where authentication is used.
 
 A very simple `.netrc` file could look something like:
 
-    machine curl.se login iamdaniel password mysecret
+    machine curl.haxx.se login iamdaniel password mysecret
 
 ## Custom Output
 
@@ -968,7 +964,7 @@ Example to use a remote Metalink file:
 To use a Metalink file in the local file system, use FILE protocol
 (`file://`):
 
-    curl --metalink file:///example.metalink
+    curl --metalink file://example.metalink
 
 Please note that if FILE protocol is disabled, there is no way to use a local
 Metalink file at the time of this writing. Also note that if `--metalink` and
@@ -981,7 +977,7 @@ fail.
 
 For your convenience, we have several open mailing lists to discuss curl, its
 development and things relevant to this. Get all info at
-https://curl.se/mail/.
+https://curl.haxx.se/mail/.
 
 Please direct curl questions, feature requests and trouble reports to one of
 these mailing lists instead of mailing any individual.
