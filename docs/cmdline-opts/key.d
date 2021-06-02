@@ -2,6 +2,8 @@ Long: key
 Arg: <key>
 Protocols: TLS SSH
 Help: Private key file name
+Category: tls ssh
+Example: --cert certificate --key here $URL
 ---
 Private key file name. Allows you to provide your private key in this separate
 file. For SSH, if not specified, curl tries the following candidates in order:
