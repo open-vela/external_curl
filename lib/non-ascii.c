@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -112,11 +112,12 @@ CURLcode Curl_convert_to_network(struct Curl_easy *data,
       *cd = iconv_open(CURL_ICONV_CODESET_OF_NETWORK,
                        CURL_ICONV_CODESET_OF_HOST);
       if(*cd == (iconv_t)-1) {
+        char buffer[STRERROR_LEN];
         failf(data,
               "The iconv_open(\"%s\", \"%s\") call failed with errno %i: %s",
               CURL_ICONV_CODESET_OF_NETWORK,
               CURL_ICONV_CODESET_OF_HOST,
-              errno, strerror(errno));
+              errno, Curl_strerror(errno, buffer, sizeof(buffer)));
         return CURLE_CONV_FAILED;
       }
     }
@@ -127,10 +128,11 @@ CURLcode Curl_convert_to_network(struct Curl_easy *data,
                &output_ptr, &out_bytes);
     if(!data)
       iconv_close(tmpcd);
-    if((rc == ICONV_ERROR) || (in_bytes != 0)) {
+    if((rc == ICONV_ERROR) || (in_bytes)) {
+      char buffer[STRERROR_LEN];
       failf(data,
             "The Curl_convert_to_network iconv call failed with errno %i: %s",
-            errno, strerror(errno));
+            errno, Curl_strerror(errno, buffer, sizeof(buffer)));
       return CURLE_CONV_FAILED;
     }
 #else
@@ -178,11 +180,12 @@ CURLcode Curl_convert_from_network(struct Curl_easy *data,
       *cd = iconv_open(CURL_ICONV_CODESET_OF_HOST,
                        CURL_ICONV_CODESET_OF_NETWORK);
       if(*cd == (iconv_t)-1) {
+        char buffer[STRERROR_LEN];
         failf(data,
               "The iconv_open(\"%s\", \"%s\") call failed with errno %i: %s",
               CURL_ICONV_CODESET_OF_HOST,
               CURL_ICONV_CODESET_OF_NETWORK,
-              errno, strerror(errno));
+              errno, Curl_strerror(errno, buffer, sizeof(buffer)));
         return CURLE_CONV_FAILED;
       }
     }
@@ -193,10 +196,11 @@ CURLcode Curl_convert_from_network(struct Curl_easy *data,
                &output_ptr, &out_bytes);
     if(!data)
       iconv_close(tmpcd);
-    if((rc == ICONV_ERROR) || (in_bytes != 0)) {
+    if((rc == ICONV_ERROR) || (in_bytes)) {
+      char buffer[STRERROR_LEN];
       failf(data,
             "Curl_convert_from_network iconv call failed with errno %i: %s",
-            errno, strerror(errno));
+            errno, Curl_strerror(errno, buffer, sizeof(buffer)));
       return CURLE_CONV_FAILED;
     }
 #else
@@ -245,11 +249,12 @@ CURLcode Curl_convert_from_utf8(struct Curl_easy *data,
       *cd = iconv_open(CURL_ICONV_CODESET_OF_HOST,
                        CURL_ICONV_CODESET_FOR_UTF8);
       if(*cd == (iconv_t)-1) {
+        char buffer[STRERROR_LEN];
         failf(data,
               "The iconv_open(\"%s\", \"%s\") call failed with errno %i: %s",
               CURL_ICONV_CODESET_OF_HOST,
               CURL_ICONV_CODESET_FOR_UTF8,
-              errno, strerror(errno));
+              errno, Curl_strerror(errno, buffer, sizeof(buffer)));
         return CURLE_CONV_FAILED;
       }
     }
@@ -260,10 +265,11 @@ CURLcode Curl_convert_from_utf8(struct Curl_easy *data,
                &output_ptr, &out_bytes);
     if(!data)
       iconv_close(tmpcd);
-    if((rc == ICONV_ERROR) || (in_bytes != 0)) {
+    if((rc == ICONV_ERROR) || (in_bytes)) {
+      char buffer[STRERROR_LEN];
       failf(data,
             "The Curl_convert_from_utf8 iconv call failed with errno %i: %s",
-            errno, strerror(errno));
+            errno, Curl_strerror(errno, buffer, sizeof(buffer)));
       return CURLE_CONV_FAILED;
     }
     if(output_ptr < input_ptr) {
