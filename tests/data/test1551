@@ -9,15 +9,15 @@ multi
 <reply>
 <data>
 HTTP/1.1 302 OK
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Content-Length: 6
-Location: /%TESTNUMBER0002
+Location: /15510002
 
 -foo-
 </data>
 <data2>
 HTTP/1.1 200 OK
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Content-Length: 11
 
 redirected
@@ -35,32 +35,35 @@ http
 </server>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib1551
 </tool>
 
  <name>
 re-run redirected transfer without setting URL again
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/1551
 </command>
 </client>
 
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /1551 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 
-GET /%TESTNUMBER0002 HTTP/1.1
+GET /15510002 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 
-GET /%TESTNUMBER HTTP/1.1
+GET /1551 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 
-GET /%TESTNUMBER0002 HTTP/1.1
+GET /15510002 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 
