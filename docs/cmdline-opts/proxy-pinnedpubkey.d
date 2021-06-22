@@ -2,7 +2,6 @@ Long: proxy-pinnedpubkey
 Arg: <hashes>
 Help: FILE/HASHES public key to verify proxy with
 Protocols: TLS
-Category: proxy tls
 ---
 Tells curl to use the specified public key file (or hashes) to verify the
 proxy. This can be a path to a file which contains a single public key in PEM
