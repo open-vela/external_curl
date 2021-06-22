@@ -9,7 +9,7 @@ FAILURE
 
 <reply>
 <data nocheck="yes">
-data for %TESTNUMBER
+data for 1099
 </data>
 </reply>
 
@@ -23,7 +23,7 @@ tftp
 TFTP get first a non-existing file then an existing
  </name>
  <command>
-tftp://%HOSTIP:%TFTPPORT/an/invalid-file tftp://%HOSTIP:%TFTPPORT//%TESTNUMBER
+tftp://%HOSTIP:%TFTPPORT/an/invalid-file tftp://%HOSTIP:%TFTPPORT//1099
 </command>
 </client>
 
@@ -42,10 +42,10 @@ mode: octet
 tsize: 0
 blksize: 512
 timeout: 6
-filename: /%TESTNUMBER
+filename: /1099
 </protocol>
 <stdout>
-data for %TESTNUMBER
+data for 1099
 </stdout>
 </verify>
 </testcase>

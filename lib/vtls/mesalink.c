@@ -6,11 +6,11 @@
  *                             \___|\___/|_| \_\_____|
  *
  * Copyright (C) 2017 - 2018, Yiming Jing, <jingyiming@baidu.com>
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -89,16 +89,17 @@ static int do_file_type(const char *type)
  * layer and do all necessary magic.
  */
 static CURLcode
-mesalink_connect_step1(struct Curl_easy *data,
-                       struct connectdata *conn, int sockindex)
+mesalink_connect_step1(struct connectdata *conn, int sockindex)
 {
   char *ciphers;
+  struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   struct in_addr addr4;
 #ifdef ENABLE_IPV6
   struct in6_addr addr6;
 #endif
-  const char * const hostname = SSL_HOST_NAME();
+  const char *const hostname =
+    SSL_IS_PROXY() ? conn->http_proxy.host.name : conn->host.name;
   size_t hostname_len = strlen(hostname);
 
   SSL_METHOD *req_method = NULL;
@@ -157,8 +158,8 @@ mesalink_connect_step1(struct Curl_easy *data,
                                                     SSL_CONN_CONFIG(CApath))) {
       if(SSL_CONN_CONFIG(verifypeer)) {
         failf(data,
-              "error setting certificate verify locations: "
-              " CAfile: %s CApath: %s",
+              "error setting certificate verify locations:\n"
+              "  CAfile: %s\n  CApath: %s",
               SSL_CONN_CONFIG(CAfile) ?
               SSL_CONN_CONFIG(CAfile) : "none",
               SSL_CONN_CONFIG(CApath) ?
@@ -172,18 +173,20 @@ mesalink_connect_step1(struct Curl_easy *data,
     else {
       infof(data, "successfully set certificate verify locations:\n");
     }
-    infof(data, " CAfile: %s\n",
-          SSL_CONN_CONFIG(CAfile) ? SSL_CONN_CONFIG(CAfile): "none");
-    infof(data, " CApath: %s\n",
-          SSL_CONN_CONFIG(CApath) ? SSL_CONN_CONFIG(CApath): "none");
+    infof(data,
+          "  CAfile: %s\n"
+          "  CApath: %s\n",
+          SSL_CONN_CONFIG(CAfile)?
+          SSL_CONN_CONFIG(CAfile): "none",
+          SSL_CONN_CONFIG(CApath)?
+          SSL_CONN_CONFIG(CApath): "none");
   }
 
-  if(SSL_SET_OPTION(primary.clientcert) && SSL_SET_OPTION(key)) {
+  if(SSL_SET_OPTION(cert) && SSL_SET_OPTION(key)) {
     int file_type = do_file_type(SSL_SET_OPTION(cert_type));
 
-    if(SSL_CTX_use_certificate_chain_file(BACKEND->ctx,
-                                          SSL_SET_OPTION(primary.clientcert),
-                                          file_type) != 1) {
+    if(SSL_CTX_use_certificate_chain_file(BACKEND->ctx, SSL_SET_OPTION(cert),
+                                     file_type) != 1) {
       failf(data, "unable to use client certificate (no key or wrong pass"
             " phrase?)");
       return CURLE_SSL_CONNECT_ERROR;
@@ -259,13 +262,11 @@ mesalink_connect_step1(struct Curl_easy *data,
   if(SSL_SET_OPTION(primary.sessionid)) {
     void *ssl_sessionid = NULL;
 
-    Curl_ssl_sessionid_lock(data);
-    if(!Curl_ssl_getsessionid(data, conn,
-                              SSL_IS_PROXY() ? TRUE : FALSE,
-                              &ssl_sessionid, NULL, sockindex)) {
+    Curl_ssl_sessionid_lock(conn);
+    if(!Curl_ssl_getsessionid(conn, &ssl_sessionid, NULL, sockindex)) {
       /* we got a session id, use it! */
       if(!SSL_set_session(BACKEND->handle, ssl_sessionid)) {
-        Curl_ssl_sessionid_unlock(data);
+        Curl_ssl_sessionid_unlock(conn);
         failf(
           data,
           "SSL: SSL_set_session failed: %s",
@@ -275,7 +276,7 @@ mesalink_connect_step1(struct Curl_easy *data,
       /* Informational message */
       infof(data, "SSL re-using session ID\n");
     }
-    Curl_ssl_sessionid_unlock(data);
+    Curl_ssl_sessionid_unlock(conn);
   }
 #endif /* MESALINK_HAVE_SESSION */
 
@@ -289,10 +290,10 @@ mesalink_connect_step1(struct Curl_easy *data,
 }
 
 static CURLcode
-mesalink_connect_step2(struct Curl_easy *data,
-                       struct connectdata *conn, int sockindex)
+mesalink_connect_step2(struct connectdata *conn, int sockindex)
 {
   int ret = -1;
+  struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
 
   conn->recv[sockindex] = mesalink_recv;
@@ -346,33 +347,30 @@ mesalink_connect_step3(struct connectdata *conn, int sockindex)
     bool incache;
     SSL_SESSION *our_ssl_sessionid;
     void *old_ssl_sessionid = NULL;
-    bool isproxy = SSL_IS_PROXY() ? TRUE : FALSE;
 
     our_ssl_sessionid = SSL_get_session(BACKEND->handle);
 
-    Curl_ssl_sessionid_lock(data);
+    Curl_ssl_sessionid_lock(conn);
     incache =
-      !(Curl_ssl_getsessionid(data, conn, isproxy, &old_ssl_sessionid, NULL,
-                              sockindex));
+      !(Curl_ssl_getsessionid(conn, &old_ssl_sessionid, NULL, sockindex));
     if(incache) {
       if(old_ssl_sessionid != our_ssl_sessionid) {
         infof(data, "old SSL session ID is stale, removing\n");
-        Curl_ssl_delsessionid(data, old_ssl_sessionid);
+        Curl_ssl_delsessionid(conn, old_ssl_sessionid);
         incache = FALSE;
       }
     }
 
     if(!incache) {
-      result =
-        Curl_ssl_addsessionid(data, conn, isproxy, our_ssl_sessionid, 0,
-                              sockindex);
+      result = Curl_ssl_addsessionid(
+        conn, our_ssl_sessionid, 0 /* unknown size */, sockindex);
       if(result) {
-        Curl_ssl_sessionid_unlock(data);
+        Curl_ssl_sessionid_unlock(conn);
         failf(data, "failed to store ssl session");
         return result;
       }
     }
-    Curl_ssl_sessionid_unlock(data);
+    Curl_ssl_sessionid_unlock(conn);
   }
 #endif /* MESALINK_HAVE_SESSION */
 
@@ -382,10 +380,9 @@ mesalink_connect_step3(struct connectdata *conn, int sockindex)
 }
 
 static ssize_t
-mesalink_send(struct Curl_easy *data, int sockindex, const void *mem,
+mesalink_send(struct connectdata *conn, int sockindex, const void *mem,
               size_t len, CURLcode *curlcode)
 {
-  struct connectdata *conn = data->conn;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   char error_buffer[MESALINK_MAX_ERROR_SZ];
   int memlen = (len > (size_t)INT_MAX) ? INT_MAX : (int)len;
@@ -400,7 +397,7 @@ mesalink_send(struct Curl_easy *data, int sockindex, const void *mem,
       *curlcode = CURLE_AGAIN;
       return -1;
     default:
-      failf(data,
+      failf(conn->data,
             "SSL write: %s, errno %d",
             ERR_error_string_n(err, error_buffer, sizeof(error_buffer)),
             SOCKERRNO);
@@ -412,11 +409,9 @@ mesalink_send(struct Curl_easy *data, int sockindex, const void *mem,
 }
 
 static void
-mesalink_close(struct Curl_easy *data, struct connectdata *conn, int sockindex)
+Curl_mesalink_close(struct connectdata *conn, int sockindex)
 {
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
-
-  (void) data;
 
   if(BACKEND->handle) {
     (void)SSL_shutdown(BACKEND->handle);
@@ -430,10 +425,9 @@ mesalink_close(struct Curl_easy *data, struct connectdata *conn, int sockindex)
 }
 
 static ssize_t
-mesalink_recv(struct Curl_easy *data, int num, char *buf, size_t buffersize,
+mesalink_recv(struct connectdata *conn, int num, char *buf, size_t buffersize,
               CURLcode *curlcode)
 {
-  struct connectdata *conn = data->conn;
   struct ssl_connect_data *connssl = &conn->ssl[num];
   char error_buffer[MESALINK_MAX_ERROR_SZ];
   int buffsize = (buffersize > (size_t)INT_MAX) ? INT_MAX : (int)buffersize;
@@ -452,7 +446,7 @@ mesalink_recv(struct Curl_easy *data, int num, char *buf, size_t buffersize,
       *curlcode = CURLE_AGAIN;
       return -1;
     default:
-      failf(data,
+      failf(conn->data,
             "SSL read: %s, errno %d",
             ERR_error_string_n(err, error_buffer, sizeof(error_buffer)),
             SOCKERRNO);
@@ -464,13 +458,13 @@ mesalink_recv(struct Curl_easy *data, int num, char *buf, size_t buffersize,
 }
 
 static size_t
-mesalink_version(char *buffer, size_t size)
+Curl_mesalink_version(char *buffer, size_t size)
 {
   return msnprintf(buffer, size, "MesaLink/%s", MESALINK_VERSION_STRING);
 }
 
 static int
-mesalink_init(void)
+Curl_mesalink_init(void)
 {
   return (SSL_library_init() == SSL_SUCCESS);
 }
@@ -480,13 +474,10 @@ mesalink_init(void)
  * socket open (CCC - Clear Command Channel)
  */
 static int
-mesalink_shutdown(struct Curl_easy *data,
-                  struct connectdata *conn, int sockindex)
+Curl_mesalink_shutdown(struct connectdata *conn, int sockindex)
 {
   int retval = 0;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
-
-  (void) data;
 
   if(BACKEND->handle) {
     SSL_free(BACKEND->handle);
@@ -496,10 +487,11 @@ mesalink_shutdown(struct Curl_easy *data,
 }
 
 static CURLcode
-mesalink_connect_common(struct Curl_easy *data, struct connectdata *conn,
-                        int sockindex, bool nonblocking, bool *done)
+mesalink_connect_common(struct connectdata *conn, int sockindex,
+                        bool nonblocking, bool *done)
 {
   CURLcode result;
+  struct Curl_easy *data = conn->data;
   struct ssl_connect_data *connssl = &conn->ssl[sockindex];
   curl_socket_t sockfd = conn->sock[sockindex];
   timediff_t timeout_ms;
@@ -521,7 +513,7 @@ mesalink_connect_common(struct Curl_easy *data, struct connectdata *conn,
       return CURLE_OPERATION_TIMEDOUT;
     }
 
-    result = mesalink_connect_step1(data, conn, sockindex);
+    result = mesalink_connect_step1(conn, sockindex);
     if(result)
       return result;
   }
@@ -550,8 +542,9 @@ mesalink_connect_common(struct Curl_easy *data, struct connectdata *conn,
                                ? sockfd
                                : CURL_SOCKET_BAD;
 
-      what = Curl_socket_check(readfd, CURL_SOCKET_BAD, writefd,
-                               nonblocking ? 0 : timeout_ms);
+      what = Curl_socket_check(
+        readfd, CURL_SOCKET_BAD, writefd,
+        nonblocking ? 0 : (time_t)timeout_ms);
       if(what < 0) {
         /* fatal error */
         failf(data, "select/poll on SSL socket, errno: %d", SOCKERRNO);
@@ -578,7 +571,7 @@ mesalink_connect_common(struct Curl_easy *data, struct connectdata *conn,
      * ensuring that a client using select() or epoll() will always
      * have a valid fdset to wait on.
      */
-    result = mesalink_connect_step2(data, conn, sockindex);
+    result = mesalink_connect_step2(conn, sockindex);
 
     if(result ||
        (nonblocking && (ssl_connect_2 == connssl->connecting_state ||
@@ -610,20 +603,19 @@ mesalink_connect_common(struct Curl_easy *data, struct connectdata *conn,
 }
 
 static CURLcode
-mesalink_connect_nonblocking(struct Curl_easy *data, struct connectdata *conn,
-                             int sockindex, bool *done)
+Curl_mesalink_connect_nonblocking(struct connectdata *conn, int sockindex,
+                                  bool *done)
 {
-  return mesalink_connect_common(data, conn, sockindex, TRUE, done);
+  return mesalink_connect_common(conn, sockindex, TRUE, done);
 }
 
 static CURLcode
-mesalink_connect(struct Curl_easy *data, struct connectdata *conn,
-                 int sockindex)
+Curl_mesalink_connect(struct connectdata *conn, int sockindex)
 {
   CURLcode result;
   bool done = FALSE;
 
-  result = mesalink_connect_common(data, conn, sockindex, FALSE, &done);
+  result = mesalink_connect_common(conn, sockindex, FALSE, &done);
   if(result)
     return result;
 
@@ -633,8 +625,8 @@ mesalink_connect(struct Curl_easy *data, struct connectdata *conn,
 }
 
 static void *
-mesalink_get_internals(struct ssl_connect_data *connssl,
-                       CURLINFO info UNUSED_PARAM)
+Curl_mesalink_get_internals(struct ssl_connect_data *connssl,
+                            CURLINFO info UNUSED_PARAM)
 {
   (void)info;
   return BACKEND->handle;
@@ -647,28 +639,26 @@ const struct Curl_ssl Curl_ssl_mesalink = {
 
   sizeof(struct ssl_backend_data),
 
-  mesalink_init,                 /* init */
-  Curl_none_cleanup,             /* cleanup */
-  mesalink_version,              /* version */
-  Curl_none_check_cxn,           /* check_cxn */
-  mesalink_shutdown,             /* shutdown */
-  Curl_none_data_pending,        /* data_pending */
-  Curl_none_random,              /* random */
+  Curl_mesalink_init, /* init */
+  Curl_none_cleanup, /* cleanup */
+  Curl_mesalink_version, /* version */
+  Curl_none_check_cxn, /* check_cxn */
+  Curl_mesalink_shutdown, /* shutdown */
+  Curl_none_data_pending, /* data_pending */
+  Curl_none_random, /* random */
   Curl_none_cert_status_request, /* cert_status_request */
-  mesalink_connect,              /* connect */
-  mesalink_connect_nonblocking,  /* connect_nonblocking */
-  Curl_ssl_getsock,              /* getsock */
-  mesalink_get_internals,        /* get_internals */
-  mesalink_close,                /* close_one */
-  Curl_none_close_all,           /* close_all */
-  Curl_none_session_free,        /* session_free */
-  Curl_none_set_engine,          /* set_engine */
-  Curl_none_set_engine_default,  /* set_engine_default */
-  Curl_none_engines_list,        /* engines_list */
-  Curl_none_false_start,         /* false_start */
-  NULL,                          /* sha256sum */
-  NULL,                          /* associate_connection */
-  NULL                           /* disassociate_connection */
+  Curl_mesalink_connect, /* connect */
+  Curl_mesalink_connect_nonblocking, /* connect_nonblocking */
+  Curl_mesalink_get_internals, /* get_internals */
+  Curl_mesalink_close, /* close_one */
+  Curl_none_close_all, /* close_all */
+  Curl_none_session_free, /* session_free */
+  Curl_none_set_engine, /* set_engine */
+  Curl_none_set_engine_default, /* set_engine_default */
+  Curl_none_engines_list, /* engines_list */
+  Curl_none_false_start, /* false_start */
+  Curl_none_md5sum, /* md5sum */
+  NULL /* sha256sum */
 };
 
 #endif

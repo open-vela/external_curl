@@ -35,26 +35,27 @@ http
 HTTP PUT twice
  </name>
  <command>
--H "Expect:" -T log/%TESTNUMBER http://%HOSTIP:%HTTPPORT/%TESTNUMBER.upload1 -T log/%TESTNUMBER http://%HOSTIP:%HTTPPORT/%TESTNUMBER0002.upload2
+-H "Expect:" -T log/1064 http://%HOSTIP:%HTTPPORT/1064.upload1 -T log/1064 http://%HOSTIP:%HTTPPORT/10640002.upload2
 </command>
-<file name="log/%TESTNUMBER">
+<file name="log/1064">
 test
 </file>
 </client>
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-PUT /%TESTNUMBER.upload1 HTTP/1.1
+PUT /1064.upload1 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 Content-Length: 5
 
 test
-PUT /%TESTNUMBER0002.upload2 HTTP/1.1
+PUT /10640002.upload2 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 Content-Length: 5
 

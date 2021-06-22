@@ -22,7 +22,7 @@ wait 10
 http
 </server>
 <tool>
-lib%TESTNUMBER
+lib1555
 </tool>
  <name>
 verify api is protected against calls from callbacks
@@ -30,7 +30,7 @@ verify api is protected against calls from callbacks
 
 # this server/host won't be used for real
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/1555
 </command>
 </client>
 
