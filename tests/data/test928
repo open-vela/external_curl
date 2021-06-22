@@ -25,7 +25,7 @@ smtp
 SMTP HELP
  </name>
  <command>
-smtp://%HOSTIP:%SMTPPORT/%TESTNUMBER
+smtp://%HOSTIP:%SMTPPORT/928
 </command>
 </client>
 
@@ -33,7 +33,7 @@ smtp://%HOSTIP:%SMTPPORT/%TESTNUMBER
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-EHLO %TESTNUMBER
+EHLO 928
 HELP
 QUIT
 </protocol>

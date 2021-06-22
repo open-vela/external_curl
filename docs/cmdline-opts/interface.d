@@ -2,7 +2,6 @@ Long: interface
 Arg: <name>
 Help: Use network INTERFACE (or address)
 See-also: dns-interface
-Category: connection
 ---
 
 Perform an operation using a specified interface. You can enter interface

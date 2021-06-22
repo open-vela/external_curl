@@ -37,14 +37,14 @@ http
 </server>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib1517
 </tool>
 
  <name>
 HTTP POST, server responds before completed send
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/1517
 </command>
 </client>
 
@@ -55,7 +55,7 @@ http://%HOSTIP:%HTTPPORT/%TESTNUMBER
 s/^(this is what we post to the silly web server)(\r)?\n//
 </strippart>
 <protocol>
-POST /%TESTNUMBER HTTP/1.1
+POST /1517 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 Content-Length: 45

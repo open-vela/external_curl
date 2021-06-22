@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -34,10 +34,11 @@
 #include "curl_memory.h"
 #include "memdebug.h"
 
-CURLcode Curl_input_negotiate(struct Curl_easy *data, struct connectdata *conn,
-                              bool proxy, const char *header)
+CURLcode Curl_input_negotiate(struct connectdata *conn, bool proxy,
+                              const char *header)
 {
   CURLcode result;
+  struct Curl_easy *data = conn->data;
   size_t len;
 
   /* Point to the username, password, service and host */
@@ -51,7 +52,6 @@ CURLcode Curl_input_negotiate(struct Curl_easy *data, struct connectdata *conn,
   curlnegotiate state;
 
   if(proxy) {
-#ifndef CURL_DISABLE_PROXY
     userp = conn->http_proxy.user;
     passwdp = conn->http_proxy.passwd;
     service = data->set.str[STRING_PROXY_SERVICE_NAME] ?
@@ -59,9 +59,6 @@ CURLcode Curl_input_negotiate(struct Curl_easy *data, struct connectdata *conn,
     host = conn->http_proxy.host.name;
     neg_ctx = &conn->proxyneg;
     state = conn->proxy_negotiate_state;
-#else
-    return CURLE_NOT_BUILT_IN;
-#endif
   }
   else {
     userp = conn->user;
@@ -89,7 +86,7 @@ CURLcode Curl_input_negotiate(struct Curl_easy *data, struct connectdata *conn,
   neg_ctx->havenegdata = len != 0;
   if(!len) {
     if(state == GSS_AUTHSUCC) {
-      infof(data, "Negotiate auth restarted\n");
+      infof(conn->data, "Negotiate auth restarted\n");
       Curl_http_auth_cleanup_negotiate(conn);
     }
     else if(state != GSS_AUTHNONE) {
@@ -115,14 +112,14 @@ CURLcode Curl_input_negotiate(struct Curl_easy *data, struct connectdata *conn,
   return result;
 }
 
-CURLcode Curl_output_negotiate(struct Curl_easy *data,
-                               struct connectdata *conn, bool proxy)
+CURLcode Curl_output_negotiate(struct connectdata *conn, bool proxy)
 {
   struct negotiatedata *neg_ctx = proxy ? &conn->proxyneg :
     &conn->negotiate;
-  struct auth *authp = proxy ? &data->state.authproxy : &data->state.authhost;
+  struct auth *authp = proxy ? &conn->data->state.authproxy :
+    &conn->data->state.authhost;
   curlnegotiate *state = proxy ? &conn->proxy_negotiate_state :
-    &conn->http_negotiate_state;
+                                 &conn->http_negotiate_state;
   char *base64 = NULL;
   size_t len = 0;
   char *userp;
@@ -145,12 +142,12 @@ CURLcode Curl_output_negotiate(struct Curl_easy *data,
     (*state != GSS_AUTHDONE && *state != GSS_AUTHSUCC)) {
 
     if(neg_ctx->noauthpersist && *state == GSS_AUTHSUCC) {
-      infof(data, "Curl_output_negotiate, "
+      infof(conn->data, "Curl_output_negotiate, "
        "no persistent authentication: cleanup existing context");
       Curl_http_auth_cleanup_negotiate(conn);
     }
     if(!neg_ctx->context) {
-      result = Curl_input_negotiate(data, conn, proxy, "Negotiate");
+      result = Curl_input_negotiate(conn, proxy, "Negotiate");
       if(result == CURLE_AUTH_ERROR) {
         /* negotiate auth failed, let's continue unauthenticated to stay
          * compatible with the behavior before curl-7_64_0-158-g6c6035532 */
@@ -161,25 +158,26 @@ CURLcode Curl_output_negotiate(struct Curl_easy *data,
         return result;
     }
 
-    result = Curl_auth_create_spnego_message(data, neg_ctx, &base64, &len);
+    result = Curl_auth_create_spnego_message(conn->data,
+      neg_ctx, &base64, &len);
     if(result)
       return result;
 
     userp = aprintf("%sAuthorization: Negotiate %s\r\n", proxy ? "Proxy-" : "",
-                    base64);
+      base64);
 
     if(proxy) {
-      Curl_safefree(data->state.aptr.proxyuserpwd);
-      data->state.aptr.proxyuserpwd = userp;
+      Curl_safefree(conn->allocptr.proxyuserpwd);
+      conn->allocptr.proxyuserpwd = userp;
     }
     else {
-      Curl_safefree(data->state.aptr.userpwd);
-      data->state.aptr.userpwd = userp;
+      Curl_safefree(conn->allocptr.userpwd);
+      conn->allocptr.userpwd = userp;
     }
 
     free(base64);
 
-    if(!userp) {
+    if(userp == NULL) {
       return CURLE_OUT_OF_MEMORY;
     }
 

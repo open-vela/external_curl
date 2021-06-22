@@ -33,13 +33,13 @@ dr-xr-xr-x   5 0        1            512 Oct  1  1997 usr
 ftp
 </server>
 <tool>
-lib%TESTNUMBER
+lib521
 </tool>
  <name>
 FTP dir list PASV with CURLOPT_PORT
  </name>
  <command>
-ftp://%HOSTIP/%TESTNUMBER/ %FTPPORT
+ftp://%HOSTIP/521/ %FTPPORT
 </command>
 </client>
 
@@ -50,7 +50,7 @@ ftp://%HOSTIP/%TESTNUMBER/ %FTPPORT
 USER xxx
 PASS yyy
 PWD
-CWD %TESTNUMBER
+CWD 521
 EPSV
 TYPE A
 LIST
