@@ -36,12 +36,12 @@ IMAP cleanup before a connection was created
  </name>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib1553
 </tool>
 
 # this MUST use a host name that doesn't resolve
 <command>
-imap://non-existing-host.haxx.se:%IMAPPORT/%TESTNUMBER
+imap://non-existing-host.haxx.se:%IMAPPORT/1553
 </command>
 </client>
 

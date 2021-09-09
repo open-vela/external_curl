@@ -3,8 +3,6 @@ Help: Specify multipart MIME data
 Protocols: HTTP SMTP IMAP
 Arg: <name=string>
 See-also: form
-Category: http upload
-Example: --form-string "data" $URL
 ---
 Similar to --form except that the value string for the named parameter is used
 literally. Leading \&'@' and \&'<' characters, and the \&';type=' string in
