@@ -15,8 +15,7 @@
  */
 
 /*
- * Copyright (C) 2005 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
- * Copyright (c) 1983, Regents of the University of California.
+ * Copyright (c) 1983 Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,9 +77,7 @@
 #include <sys/filio.h>
 #endif
 
-#ifdef HAVE_SETJMP_H
 #include <setjmp.h>
-#endif
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -212,10 +209,8 @@ static const char *ipv_inuse = "IPv4";
 
 const  char *serverlogfile = DEFAULT_LOGFILE;
 static const char *pidname = ".tftpd.pid";
-static const char *portname = NULL; /* none by default */
 static int serverlogslocked = 0;
 static int wrotepidfile = 0;
-static int wroteportfile = 0;
 
 #ifdef HAVE_SIGSETJMP
 static sigjmp_buf timeoutbuf;
@@ -224,6 +219,44 @@ static sigjmp_buf timeoutbuf;
 #if defined(HAVE_ALARM) && defined(SIGALRM)
 static const unsigned int rexmtval = TIMEOUT;
 #endif
+
+/* do-nothing macro replacement for systems which lack siginterrupt() */
+
+#ifndef HAVE_SIGINTERRUPT
+#define siginterrupt(x,y) do {} while(0)
+#endif
+
+/* vars used to keep around previous signal handlers */
+
+typedef RETSIGTYPE (*SIGHANDLER_T)(int);
+
+#ifdef SIGHUP
+static SIGHANDLER_T old_sighup_handler  = SIG_ERR;
+#endif
+
+#ifdef SIGPIPE
+static SIGHANDLER_T old_sigpipe_handler = SIG_ERR;
+#endif
+
+#ifdef SIGINT
+static SIGHANDLER_T old_sigint_handler  = SIG_ERR;
+#endif
+
+#ifdef SIGTERM
+static SIGHANDLER_T old_sigterm_handler = SIG_ERR;
+#endif
+
+#if defined(SIGBREAK) && defined(WIN32)
+static SIGHANDLER_T old_sigbreak_handler = SIG_ERR;
+#endif
+
+/* var which if set indicates that the program should finish execution */
+
+SIG_ATOMIC_T got_exit_signal = 0;
+
+/* if next is set indicates the first signal handled in exit_signal_handler */
+
+static volatile int exit_signal = 0;
 
 /*****************************************************************************
 *                            FUNCTION PROTOTYPES                             *
@@ -261,6 +294,12 @@ static void justtimeout(int signum);
 
 #endif /* HAVE_ALARM && SIGALRM */
 
+static RETSIGTYPE exit_signal_handler(int signum);
+
+static void install_signal_handlers(void);
+
+static void restore_signal_handlers(void);
+
 /*****************************************************************************
 *                          FUNCTION IMPLEMENTATIONS                          *
 *****************************************************************************/
@@ -290,10 +329,6 @@ static void timer(int signum)
       wrotepidfile = 0;
       unlink(pidname);
     }
-    if(wroteportfile) {
-      wroteportfile = 0;
-      unlink(portname);
-    }
     if(serverlogslocked) {
       serverlogslocked = 0;
       clear_advisor_read_lock(SERVERLOGS_LOCK);
@@ -311,6 +346,86 @@ static void justtimeout(int signum)
 }
 
 #endif /* HAVE_ALARM && SIGALRM */
+
+/* signal handler that will be triggered to indicate that the program
+  should finish its execution in a controlled manner as soon as possible.
+  The first time this is called it will set got_exit_signal to one and
+  store in exit_signal the signal that triggered its execution. */
+
+static RETSIGTYPE exit_signal_handler(int signum)
+{
+  int old_errno = errno;
+  if(got_exit_signal == 0) {
+    got_exit_signal = 1;
+    exit_signal = signum;
+  }
+  (void)signal(signum, exit_signal_handler);
+  errno = old_errno;
+}
+
+static void install_signal_handlers(void)
+{
+#ifdef SIGHUP
+  /* ignore SIGHUP signal */
+  old_sighup_handler = signal(SIGHUP, SIG_IGN);
+  if(old_sighup_handler == SIG_ERR)
+    logmsg("cannot install SIGHUP handler: %s", strerror(errno));
+#endif
+#ifdef SIGPIPE
+  /* ignore SIGPIPE signal */
+  old_sigpipe_handler = signal(SIGPIPE, SIG_IGN);
+  if(old_sigpipe_handler == SIG_ERR)
+    logmsg("cannot install SIGPIPE handler: %s", strerror(errno));
+#endif
+#ifdef SIGINT
+  /* handle SIGINT signal with our exit_signal_handler */
+  old_sigint_handler = signal(SIGINT, exit_signal_handler);
+  if(old_sigint_handler == SIG_ERR)
+    logmsg("cannot install SIGINT handler: %s", strerror(errno));
+  else
+    siginterrupt(SIGINT, 1);
+#endif
+#ifdef SIGTERM
+  /* handle SIGTERM signal with our exit_signal_handler */
+  old_sigterm_handler = signal(SIGTERM, exit_signal_handler);
+  if(old_sigterm_handler == SIG_ERR)
+    logmsg("cannot install SIGTERM handler: %s", strerror(errno));
+  else
+    siginterrupt(SIGTERM, 1);
+#endif
+#if defined(SIGBREAK) && defined(WIN32)
+  /* handle SIGBREAK signal with our exit_signal_handler */
+  old_sigbreak_handler = signal(SIGBREAK, exit_signal_handler);
+  if(old_sigbreak_handler == SIG_ERR)
+    logmsg("cannot install SIGBREAK handler: %s", strerror(errno));
+  else
+    siginterrupt(SIGBREAK, 1);
+#endif
+}
+
+static void restore_signal_handlers(void)
+{
+#ifdef SIGHUP
+  if(SIG_ERR != old_sighup_handler)
+    (void)signal(SIGHUP, old_sighup_handler);
+#endif
+#ifdef SIGPIPE
+  if(SIG_ERR != old_sigpipe_handler)
+    (void)signal(SIGPIPE, old_sigpipe_handler);
+#endif
+#ifdef SIGINT
+  if(SIG_ERR != old_sigint_handler)
+    (void)signal(SIGINT, old_sigint_handler);
+#endif
+#ifdef SIGTERM
+  if(SIG_ERR != old_sigterm_handler)
+    (void)signal(SIGTERM, old_sigterm_handler);
+#endif
+#if defined(SIGBREAK) && defined(WIN32)
+  if(SIG_ERR != old_sigbreak_handler)
+    (void)signal(SIGBREAK, old_sigbreak_handler);
+#endif
+}
 
 /*
  * init for either read-ahead or write-behind.
@@ -560,6 +675,7 @@ int main(int argc, char **argv)
   int flag;
   int rc;
   int error;
+  long pid;
   struct testcase test;
   int result = 0;
 
@@ -580,11 +696,6 @@ int main(int argc, char **argv)
       arg++;
       if(argc>arg)
         pidname = argv[arg++];
-    }
-    else if(!strcmp("--portfile", argv[arg])) {
-      arg++;
-      if(argc>arg)
-        portname = argv[arg++];
     }
     else if(!strcmp("--logfile", argv[arg])) {
       arg++;
@@ -610,6 +721,12 @@ int main(int argc, char **argv)
       if(argc>arg) {
         char *endptr;
         unsigned long ulnum = strtoul(argv[arg], &endptr, 10);
+        if((endptr != argv[arg] + strlen(argv[arg])) ||
+           (ulnum < 1025UL) || (ulnum > 65535UL)) {
+          fprintf(stderr, "tftpd: invalid --port argument (%s)\n",
+                  argv[arg]);
+          return 0;
+        }
         port = curlx_ultous(ulnum);
         arg++;
       }
@@ -626,7 +743,6 @@ int main(int argc, char **argv)
            " --version\n"
            " --logfile [file]\n"
            " --pidfile [file]\n"
-           " --portfile [file]\n"
            " --ipv4\n"
            " --ipv6\n"
            " --port [port]\n"
@@ -640,7 +756,9 @@ int main(int argc, char **argv)
   atexit(win32_cleanup);
 #endif
 
-  install_signal_handlers(true);
+  install_signal_handlers();
+
+  pid = (long)getpid();
 
 #ifdef ENABLE_IPV6
   if(!use_ipv6)
@@ -695,62 +813,10 @@ int main(int argc, char **argv)
     goto tftpd_cleanup;
   }
 
-  if(!port) {
-    /* The system was supposed to choose a port number, figure out which
-       port we actually got and update the listener port value with it. */
-    curl_socklen_t la_size;
-    srvr_sockaddr_union_t localaddr;
-#ifdef ENABLE_IPV6
-    if(!use_ipv6)
-#endif
-      la_size = sizeof(localaddr.sa4);
-#ifdef ENABLE_IPV6
-    else
-      la_size = sizeof(localaddr.sa6);
-#endif
-    memset(&localaddr.sa, 0, (size_t)la_size);
-    if(getsockname(sock, &localaddr.sa, &la_size) < 0) {
-      error = SOCKERRNO;
-      logmsg("getsockname() failed with error: (%d) %s",
-             error, strerror(error));
-      sclose(sock);
-      goto tftpd_cleanup;
-    }
-    switch(localaddr.sa.sa_family) {
-    case AF_INET:
-      port = ntohs(localaddr.sa4.sin_port);
-      break;
-#ifdef ENABLE_IPV6
-    case AF_INET6:
-      port = ntohs(localaddr.sa6.sin6_port);
-      break;
-#endif
-    default:
-      break;
-    }
-    if(!port) {
-      /* Real failure, listener port shall not be zero beyond this point. */
-      logmsg("Apparently getsockname() succeeded, with listener port zero.");
-      logmsg("A valid reason for this failure is a binary built without");
-      logmsg("proper network library linkage. This might not be the only");
-      logmsg("reason, but double check it before anything else.");
-      result = 2;
-      goto tftpd_cleanup;
-    }
-  }
-
   wrotepidfile = write_pidfile(pidname);
   if(!wrotepidfile) {
     result = 1;
     goto tftpd_cleanup;
-  }
-
-  if(portname) {
-    wroteportfile = write_portfile(portname, port);
-    if(!wroteportfile) {
-      result = 1;
-      goto tftpd_cleanup;
-    }
   }
 
   logmsg("Running %s version on port UDP/%d", ipv_inuse, (int)port);
@@ -824,6 +890,11 @@ int main(int argc, char **argv)
     sclose(peer);
     peer = CURL_SOCKET_BAD;
 
+    if(test.ofile > 0) {
+      close(test.ofile);
+      test.ofile = 0;
+    }
+
     if(got_exit_signal)
       break;
 
@@ -852,19 +923,17 @@ tftpd_cleanup:
 
   if(wrotepidfile)
     unlink(pidname);
-  if(wroteportfile)
-    unlink(portname);
 
   if(serverlogslocked) {
     serverlogslocked = 0;
     clear_advisor_read_lock(SERVERLOGS_LOCK);
   }
 
-  restore_signal_handlers(true);
+  restore_signal_handlers();
 
   if(got_exit_signal) {
     logmsg("========> %s tftpd (port: %d pid: %ld) exits with signal (%d)",
-           ipv_inuse, (int)port, (long)getpid(), exit_signal);
+           ipv_inuse, (int)port, pid, exit_signal);
     /*
      * To properly set the return status of the process we
      * must raise the same signal SIGINT or SIGTERM that we
@@ -902,7 +971,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
   }
 
   /* store input protocol */
-  fprintf(server, "opcode = %x\n", tp->th_opcode);
+  fprintf(server, "opcode: %x\n", tp->th_opcode);
 
   cp = (char *)&tp->th_stuff;
   filename = cp;
@@ -930,7 +999,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
       }
       if(toggle)
         /* name/value pair: */
-        fprintf(server, "%s = %s\n", option, cp);
+        fprintf(server, "%s: %s\n", option, cp);
       else {
         /* store the name pointer */
         option = cp;
@@ -949,7 +1018,7 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
   }
 
   /* store input protocol */
-  fprintf(server, "filename = %s\n", filename);
+  fprintf(server, "filename: %s\n", filename);
 
   for(cp = mode; cp && *cp; cp++)
     if(ISUPPER(*cp))
@@ -998,12 +1067,16 @@ static int do_tftp(struct testcase *test, struct tftphdr *tp, ssize_t size)
 static int parse_servercmd(struct testcase *req)
 {
   FILE *stream;
+  char *filename;
   int error;
 
-  stream = test2fopen(req->testno);
+  filename = test2file(req->testno);
+
+  stream = fopen(filename, "rb");
   if(!stream) {
     error = errno;
     logmsg("fopen() failed with error: %d %s", error, strerror(error));
+    logmsg("  [1] Error opening file: %s", filename);
     logmsg("  Couldn't open test file %ld", req->testno);
     return 1; /* done */
   }
@@ -1068,8 +1141,8 @@ static int validate_access(struct testcase *test,
 
   if(!strncmp("verifiedserver", filename, 14)) {
     char weare[128];
-    size_t count = msnprintf(weare, sizeof(weare), "WE ROOLZ: %"
-                             CURL_FORMAT_CURL_OFF_T "\r\n", our_getpid());
+    size_t count = msnprintf(weare, sizeof(weare),
+                             "WE ROOLZ: %ld\r\n", (long)getpid());
 
     logmsg("Are-we-friendly question received");
     test->buffer = strdup(weare);
@@ -1086,7 +1159,7 @@ static int validate_access(struct testcase *test,
     char partbuf[80]="data";
     long partno;
     long testno;
-    FILE *stream;
+    char *file;
 
     ptr++; /* skip the slash */
 
@@ -1111,33 +1184,40 @@ static int validate_access(struct testcase *test,
 
     (void)parse_servercmd(test);
 
-    stream = test2fopen(testno);
+    file = test2file(testno);
 
     if(0 != partno)
       msnprintf(partbuf, sizeof(partbuf), "data%ld", partno);
 
-    if(!stream) {
-      int error = errno;
-      logmsg("fopen() failed with error: %d %s", error, strerror(error));
-      logmsg("Couldn't open test file for test : %d", testno);
+    if(file) {
+      FILE *stream = fopen(file, "rb");
+      if(!stream) {
+        int error = errno;
+        logmsg("fopen() failed with error: %d %s", error, strerror(error));
+        logmsg("Error opening file: %s", file);
+        logmsg("Couldn't open test file: %s", file);
+        return EACCESS;
+      }
+      else {
+        size_t count;
+        int error = getpart(&test->buffer, &count, "reply", partbuf, stream);
+        fclose(stream);
+        if(error) {
+          logmsg("getpart() failed with error: %d", error);
+          return EACCESS;
+        }
+        if(test->buffer) {
+          test->rptr = test->buffer; /* set read pointer */
+          test->bufsize = count;    /* set total count */
+          test->rcount = count;     /* set data left to read */
+        }
+        else
+          return EACCESS;
+      }
+
+    }
+    else
       return EACCESS;
-    }
-    else {
-      size_t count;
-      int error = getpart(&test->buffer, &count, "reply", partbuf, stream);
-      fclose(stream);
-      if(error) {
-        logmsg("getpart() failed with error: %d", error);
-        return EACCESS;
-      }
-      if(test->buffer) {
-        test->rptr = test->buffer; /* set read pointer */
-        test->bufsize = count;    /* set total count */
-        test->rcount = count;     /* set data left to read */
-      }
-      else
-        return EACCESS;
-    }
   }
   else {
     logmsg("no slash found in path");
@@ -1183,9 +1263,8 @@ static void sendtftp(struct testcase *test, struct formats *pf)
     }
 
     send_data:
-    logmsg("write");
     if(swrite(peer, sdp, size + 4) != size + 4) {
-      logmsg("write: fail");
+      logmsg("write");
       return;
     }
     read_ahead(test, pf->f_convert);
@@ -1193,9 +1272,7 @@ static void sendtftp(struct testcase *test, struct formats *pf)
 #ifdef HAVE_ALARM
       alarm(rexmtval);        /* read the ack */
 #endif
-      logmsg("read");
       n = sread(peer, &ackbuf.storage[0], sizeof(ackbuf.storage));
-      logmsg("read: %zd", n);
 #ifdef HAVE_ALARM
       alarm(0);
 #endif
@@ -1255,9 +1332,8 @@ static void recvtftp(struct testcase *test, struct formats *pf)
     (void) sigsetjmp(timeoutbuf, 1);
 #endif
 send_ack:
-    logmsg("write");
     if(swrite(peer, &ackbuf.storage[0], 4) != 4) {
-      logmsg("write: fail");
+      logmsg("write: fail\n");
       goto abort;
     }
     write_behind(test, pf->f_convert);
@@ -1265,16 +1341,14 @@ send_ack:
 #ifdef HAVE_ALARM
       alarm(rexmtval);
 #endif
-      logmsg("read");
       n = sread(peer, rdp, PKTSIZE);
-      logmsg("read: %zd", n);
 #ifdef HAVE_ALARM
       alarm(0);
 #endif
       if(got_exit_signal)
         goto abort;
       if(n < 0) {                       /* really? */
-        logmsg("read: fail");
+        logmsg("read: fail\n");
         goto abort;
       }
       rdp->th_opcode = ntohs((unsigned short)rdp->th_opcode);
@@ -1302,11 +1376,6 @@ send_ack:
     }
   } while(size == SEGSIZE);
   write_behind(test, pf->f_convert);
-  /* close the output file as early as possible after upload completion */
-  if(test->ofile > 0) {
-    close(test->ofile);
-    test->ofile = 0;
-  }
 
   rap->th_opcode = htons((unsigned short)opcode_ACK);  /* send the "final"
                                                           ack */
@@ -1329,11 +1398,6 @@ send_ack:
     (void) swrite(peer, &ackbuf.storage[0], 4);  /* resend final ack */
   }
 abort:
-  /* make sure the output file is closed in case of abort */
-  if(test->ofile > 0) {
-    close(test->ofile);
-    test->ofile = 0;
-  }
   return;
 }
 
