@@ -31,7 +31,7 @@ FTP download, file without Content-Disposition inside, using -O
 CURL_TESTDIR=%PWD/log
 </setenv>
 <command option="no-output,no-include">
-ftp://%HOSTIP:%FTPPORT/path/file%TESTNUMBER -O
+ftp://%HOSTIP:%FTPPORT/path/file1348 -O
 </command>
 </client>
 
@@ -44,17 +44,17 @@ PWD
 CWD path
 EPSV
 TYPE I
-SIZE file%TESTNUMBER
-RETR file%TESTNUMBER
+SIZE file1348
+RETR file1348
 QUIT
 </protocol>
 
-<file1 name="log/file%TESTNUMBER">
+<file1 name="log/file1348">
 fooo
 mooo
 </file1>
 
-<file2 name="log/stdout%TESTNUMBER">
+<file2 name="log/stdout1348">
 </file2>
 
 </verify>
