@@ -22,7 +22,7 @@ ftp
 FTP URL with type=a
  </name>
  <command>
-"ftp://%HOSTIP:%FTPPORT/%2ftmp/moo/%TESTNUMBER;type=a"
+"ftp://%HOSTIP:%FTPPORT/%2ftmp/moo/143;type=a"
 </command>
 </client>
 
@@ -37,7 +37,8 @@ CWD tmp
 CWD moo
 EPSV
 TYPE A
-RETR %TESTNUMBER
+SIZE 143
+RETR 143
 QUIT
 </protocol>
 </verify>

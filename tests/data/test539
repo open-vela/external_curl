@@ -37,14 +37,14 @@ ftp
 </server>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib539
 </tool>
 
  <name>
 Two FTP fetches using different CURLOPT_FTP_FILEMETHOD
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/path/to/the/file/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/path/to/the/file/539
 </command>
 </client>
 
@@ -58,13 +58,13 @@ PWD
 CWD path/to/the/file
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 539
+RETR 539
 SYST
 CWD /
 EPSV
 TYPE A
-LIST path/to/the/file/%TESTNUMBER.
+LIST path/to/the/file/539.
 QUIT
 </protocol>
 </verify>

@@ -59,22 +59,23 @@ crypto
 HTTP with Digest authorization with user name needing escape
  </name>
  <command>
-http://%5cuser%22:password@%HOSTIP:%HTTPPORT/%TESTNUMBER --digest
+http://%5cuser%22:password@%HOSTIP:%HTTPPORT/1229 --digest
 </command>
 </client>
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /1229 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
-GET /%TESTNUMBER HTTP/1.1
+GET /1229 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-Authorization: Digest username="\\user\"", realm="testrealm", nonce="1053604145", uri="/%TESTNUMBER", response="f2694d426040712584c156d3de72b8d6"
-User-Agent: curl/%VERSION
+Authorization: Digest username="\\user\"", realm="testrealm", nonce="1053604145", uri="/1229", response="f2694d426040712584c156d3de72b8d6"
 Accept: */*
 
 </protocol>

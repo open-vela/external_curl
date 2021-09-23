@@ -11,7 +11,7 @@ HTTP GET
 <reply>
 <data>
 HTTP/1.1 200 OK
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Server: test-server/fake
 Last-Modified: Tue, 13 Jun 2000 12:10:00 GMT
 ETag: "21025-dc7-39462498"
@@ -35,17 +35,19 @@ http
 URL without slash and @-letter in query
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT?email=name@example.com/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT?email=name@example.com/1118
 </command>
 </client>
 
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /?email=name@example.com/%TESTNUMBER HTTP/1.1
+GET /?email=name@example.com/1118 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
 </protocol>

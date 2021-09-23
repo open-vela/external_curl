@@ -11,7 +11,6 @@ FAILURE
 <reply>
 <servercmd>
 REPLY RETR 314 bluah you f00l!
-REPLY SIZE 500 command not understood
 </servercmd>
 </reply>
 
@@ -24,7 +23,7 @@ ftp
 FTP download, failed RETR with PORT
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -P -
+ftp://%HOSTIP:%FTPPORT/119 -P -
 </command>
 </client>
 
@@ -43,8 +42,8 @@ USER anonymous
 PASS ftp@example.com
 PWD
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 119
+RETR 119
 QUIT
 </protocol>
 </verify>

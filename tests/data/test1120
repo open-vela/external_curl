@@ -23,7 +23,7 @@ ftp
 FTP with 421 timeout response
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/a/path/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/a/path/1120
 </command>
 </client>
 
