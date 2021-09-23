@@ -1,6 +1,9 @@
 Long: sasl-authzid
-Help: Use this identity to act as during SASL PLAIN authentication
+Arg: <identity>
+Help: Identity for SASL PLAIN authentication
 Added: 7.66.0
+Category: auth
+Example: --sasl-authzid zid imap://example.com/
 ---
 Use this authorisation identity (authzid), during SASL PLAIN authentication,
 in addition to the authentication identity (authcid) as specified by --user.
