@@ -4,10 +4,6 @@ Help: Use PORT instead of PASV
 Short: P
 Protocols: FTP
 See-also: ftp-pasv disable-eprt
-Category: ftp
-Example: -P - ftp:/example.com
-Example: -P eth0 ftp:/example.com
-Example: -P 192.168.0.2 ftp:/example.com
 ---
 Reverses the default initiator/listener roles when connecting with FTP. This
 option makes curl use active mode. curl then tells the server to connect back

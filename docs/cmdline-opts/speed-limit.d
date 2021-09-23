@@ -2,8 +2,6 @@ Long: speed-limit
 Short: Y
 Arg: <speed>
 Help: Stop transfers slower than this
-Category: connection
-Example: --speed-limit 300 --speed-time 10 $URL
 ---
 If a download is slower than this given speed (in bytes per second) for
 speed-time seconds it gets aborted. speed-time is set with --speed-time and is
