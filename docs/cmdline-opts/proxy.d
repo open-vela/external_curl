@@ -2,6 +2,8 @@ Long: proxy
 Short: x
 Arg: [protocol://]host[:port]
 Help: Use this proxy
+Category: proxy
+Example: --proxy http://proxy.example $URL
 ---
 Use the specified proxy.
 

@@ -2,6 +2,8 @@ Long: capath
 Arg: <dir>
 Help: CA directory to verify peer against
 Protocols: TLS
+Category: tls
+Example: --capath /local/directory $URL
 ---
 Tells curl to use the specified certificate directory to verify the
 peer. Multiple paths can be provided by separating them with ":" (e.g.
