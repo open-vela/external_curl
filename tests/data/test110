@@ -30,7 +30,7 @@ ftp
 FTP download resume with set limit
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -C 20
+ftp://%HOSTIP:%FTPPORT/110 -C 20
 </command>
 </client>
 
@@ -43,9 +43,9 @@ PWD
 EPSV
 PASV
 TYPE I
-SIZE %TESTNUMBER
+SIZE 110
 REST 20
-RETR %TESTNUMBER
+RETR 110
 QUIT
 </protocol>
 </verify>
