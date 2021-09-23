@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -42,10 +42,9 @@
 #define CONST_SAFEFREE(x)       Curl_safefree(*((void **) &(x)))
 
 /* tool_mime functions. */
-static struct tool_mime *tool_mime_new(struct tool_mime *parent,
-                                       toolmimekind kind)
+static tool_mime *tool_mime_new(tool_mime *parent, toolmimekind kind)
 {
-  struct tool_mime *m = (struct tool_mime *) calloc(1, sizeof(*m));
+  tool_mime *m = (tool_mime *) calloc(1, sizeof(*m));
 
   if(m) {
     m->kind = kind;
@@ -58,15 +57,14 @@ static struct tool_mime *tool_mime_new(struct tool_mime *parent,
   return m;
 }
 
-static struct tool_mime *tool_mime_new_parts(struct tool_mime *parent)
+static tool_mime *tool_mime_new_parts(tool_mime *parent)
 {
   return tool_mime_new(parent, TOOLMIME_PARTS);
 }
 
-static struct tool_mime *tool_mime_new_data(struct tool_mime *parent,
-                                            const char *data)
+static tool_mime *tool_mime_new_data(tool_mime *parent, const char *data)
 {
-  struct tool_mime *m = NULL;
+  tool_mime *m = NULL;
 
   data = strdup(data);
   if(data) {
@@ -79,13 +77,13 @@ static struct tool_mime *tool_mime_new_data(struct tool_mime *parent,
   return m;
 }
 
-static struct tool_mime *tool_mime_new_filedata(struct tool_mime *parent,
-                                                const char *filename,
-                                                bool isremotefile,
-                                                CURLcode *errcode)
+static tool_mime *tool_mime_new_filedata(tool_mime *parent,
+                                         const char *filename,
+                                         bool isremotefile,
+                                         CURLcode *errcode)
 {
   CURLcode result = CURLE_OK;
-  struct tool_mime *m = NULL;
+  tool_mime *m = NULL;
 
   *errcode = CURLE_OUT_OF_MEMORY;
   if(strcmp(filename, "-")) {
@@ -161,7 +159,7 @@ static struct tool_mime *tool_mime_new_filedata(struct tool_mime *parent,
   return m;
 }
 
-void tool_mime_free(struct tool_mime *mime)
+void tool_mime_free(tool_mime *mime)
 {
   if(mime) {
     if(mime->subparts)
@@ -183,7 +181,7 @@ void tool_mime_free(struct tool_mime *mime)
 size_t tool_mime_stdin_read(char *buffer,
                             size_t size, size_t nitems, void *arg)
 {
-  struct tool_mime *sip = (struct tool_mime *) arg;
+  tool_mime *sip = (tool_mime *) arg;
   curl_off_t bytesleft;
   (void) size;  /* Always 1: ignored. */
 
@@ -218,7 +216,7 @@ size_t tool_mime_stdin_read(char *buffer,
 
 int tool_mime_stdin_seek(void *instream, curl_off_t offset, int whence)
 {
-  struct tool_mime *sip = (struct tool_mime *) instream;
+  tool_mime *sip = (tool_mime *) instream;
 
   switch(whence) {
   case SEEK_CUR:
@@ -240,8 +238,7 @@ int tool_mime_stdin_seek(void *instream, curl_off_t offset, int whence)
 
 /* Translate an internal mime tree into a libcurl mime tree. */
 
-static CURLcode tool2curlparts(CURL *curl, struct tool_mime *m,
-                               curl_mime *mime)
+static CURLcode tool2curlparts(CURL *curl, tool_mime *m, curl_mime *mime)
 {
   CURLcode ret = CURLE_OK;
   curl_mimepart *part = NULL;
@@ -326,7 +323,7 @@ static CURLcode tool2curlparts(CURL *curl, struct tool_mime *m,
   return ret;
 }
 
-CURLcode tool2curlmime(CURL *curl, struct tool_mime *m, curl_mime **mime)
+CURLcode tool2curlmime(CURL *curl, tool_mime *m, curl_mime **mime)
 {
   CURLcode ret = CURLE_OK;
 
@@ -347,8 +344,7 @@ CURLcode tool2curlmime(CURL *curl, struct tool_mime *m, curl_mime **mime)
  * after call get_parm_word, str either point to string end
  * or point to any of end chars.
  */
-static char *get_param_word(struct OperationConfig *config, char **str,
-                            char **end_pos, char endchar)
+static char *get_param_word(char **str, char **end_pos, char endchar)
 {
   char *ptr = *str;
   /* the first non-space char is here */
@@ -370,7 +366,6 @@ static char *get_param_word(struct OperationConfig *config, char **str,
         }
       }
       if(*ptr == '"') {
-        bool trailing_data = FALSE;
         *end_pos = ptr;
         if(escape) {
           /* has escape, we restore the unescaped string here */
@@ -383,14 +378,8 @@ static char *get_param_word(struct OperationConfig *config, char **str,
           while(ptr < *end_pos);
           *end_pos = ptr2;
         }
-        ++ptr;
-        while(*ptr && *ptr != ';' && *ptr != endchar) {
-          if(!ISSPACE(*ptr))
-            trailing_data = TRUE;
+        while(*ptr && *ptr != ';' && *ptr != endchar)
           ++ptr;
-        }
-        if(trailing_data)
-          warnf(config->global, "Trailing data after quoted form parameter\n");
         *str = ptr;
         return word_begin + 1;
       }
@@ -509,7 +498,7 @@ static int get_param_part(struct OperationConfig *config, char endchar,
   while(ISSPACE(*p))
     p++;
   tp = p;
-  *pdata = get_param_word(config, &p, &endpos, endchar);
+  *pdata = get_param_word(&p, &endpos, endchar);
   /* If not quoted, strip trailing spaces. */
   if(*pdata == tp)
     while(endpos > *pdata && ISSPACE(endpos[-1]))
@@ -548,7 +537,7 @@ static int get_param_part(struct OperationConfig *config, char endchar,
       for(p += 9; ISSPACE(*p); p++)
         ;
       tp = p;
-      filename = get_param_word(config, &p, &endpos, endchar);
+      filename = get_param_word(&p, &endpos, endchar);
       /* If not quoted, strip trailing spaces. */
       if(filename == tp)
         while(endpos > filename && ISSPACE(endpos[-1]))
@@ -571,7 +560,7 @@ static int get_param_part(struct OperationConfig *config, char endchar,
           p++;
         } while(ISSPACE(*p));
         tp = p;
-        hdrfile = get_param_word(config, &p, &endpos, endchar);
+        hdrfile = get_param_word(&p, &endpos, endchar);
         /* If not quoted, strip trailing spaces. */
         if(hdrfile == tp)
           while(endpos > hdrfile && ISSPACE(endpos[-1]))
@@ -598,7 +587,7 @@ static int get_param_part(struct OperationConfig *config, char endchar,
         while(ISSPACE(*p))
           p++;
         tp = p;
-        hdr = get_param_word(config, &p, &endpos, endchar);
+        hdr = get_param_word(&p, &endpos, endchar);
         /* If not quoted, strip trailing spaces. */
         if(hdr == tp)
           while(endpos > hdr && ISSPACE(endpos[-1]))
@@ -620,7 +609,7 @@ static int get_param_part(struct OperationConfig *config, char endchar,
       for(p += 8; ISSPACE(*p); p++)
         ;
       tp = p;
-      encoder = get_param_word(config, &p, &endpos, endchar);
+      encoder = get_param_word(&p, &endpos, endchar);
       /* If not quoted, strip trailing spaces. */
       if(encoder == tp)
         while(endpos > encoder && ISSPACE(endpos[-1]))
@@ -637,7 +626,7 @@ static int get_param_part(struct OperationConfig *config, char endchar,
     }
     else {
       /* unknown prefix, skip to next block */
-      char *unknown = get_param_word(config, &p, &endpos, endchar);
+      char *unknown = get_param_word(&p, &endpos, endchar);
 
       sep = *p;
       *endpos = '\0';
@@ -728,27 +717,24 @@ static int get_param_part(struct OperationConfig *config, char endchar,
  ***************************************************************************/
 
 /* Convenience macros for null pointer check. */
-#define NULL_CHECK(ptr, init, retcode)                                  \
-  do {                                                                  \
-    (ptr) = (init);                                                     \
-    if(!(ptr)) {                                                        \
-      warnf(config->global, "out of memory!\n");                        \
-      curl_slist_free_all(headers);                                     \
-      Curl_safefree(contents);                                          \
-      return retcode;                                                   \
-    }                                                                   \
-  } while(0)
-
-#define SET_TOOL_MIME_PTR(m, field, retcode)                            \
-  do {                                                                  \
-    if(field)                                                           \
-      NULL_CHECK((m)->field, strdup(field), retcode);                   \
-  } while(0)
+#define NULL_CHECK(ptr, init, retcode) {                                \
+  (ptr) = (init);                                                       \
+  if(!(ptr)) {                                                          \
+    warnf(config->global, "out of memory!\n");                          \
+    curl_slist_free_all(headers);                                       \
+    Curl_safefree(contents);                                            \
+    return retcode;                                                     \
+  }                                                                     \
+}
+#define SET_TOOL_MIME_PTR(m, field, retcode) {                          \
+  if(field)                                                             \
+    NULL_CHECK((m)->field, strdup(field), retcode);                     \
+}
 
 int formparse(struct OperationConfig *config,
               const char *input,
-              struct tool_mime **mimeroot,
-              struct tool_mime **mimecurrent,
+              tool_mime **mimeroot,
+              tool_mime **mimecurrent,
               bool literal_value)
 {
   /* input MUST be a string in the format 'name=contents' and we'll
@@ -761,7 +747,7 @@ int formparse(struct OperationConfig *config,
   char *filename = NULL;
   char *encoder = NULL;
   struct curl_slist *headers = NULL;
-  struct tool_mime *part = NULL;
+  tool_mime *part = NULL;
   CURLcode res;
 
   /* Allocate the main mime structure if needed. */
@@ -808,7 +794,7 @@ int formparse(struct OperationConfig *config,
 
       /* we use the @-letter to indicate file name(s) */
 
-      struct tool_mime *subparts = NULL;
+      tool_mime *subparts = NULL;
 
       do {
         /* since this was a file, it may have a content-type specifier

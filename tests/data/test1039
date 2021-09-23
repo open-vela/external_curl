@@ -23,9 +23,9 @@ ftp
 FTP PASV upload resume from end of empty file
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -T log/upload%TESTNUMBER -C -
+ftp://%HOSTIP:%FTPPORT/1039 -T log/upload1039 -C -
 </command>
-<file name="log/upload%TESTNUMBER">
+<file name="log/upload1039">
 this is the *****cr@p******** that we're gonna upload
 
 worx?
@@ -40,8 +40,8 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-STOR %TESTNUMBER
+SIZE 1039
+STOR 1039
 QUIT
 </protocol>
 <upload>
