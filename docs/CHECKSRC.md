@@ -9,7 +9,7 @@ check that it adheres to our [Source Code Style guide](CODE_STYLE.md).
 
 ## Command line options
 
-`-W[file]` skip that file and excludes it from being checked. Helpful
+`-W[file]` whitelists that file and excludes it from being checked. Helpful
 when, for example, one of the files is generated.
 
 `-D[dir]` directory name to prepend to file names when accessing them.
@@ -33,9 +33,8 @@ warnings are:
 - `ASSIGNWITHINCONDITION`: Assignment within a conditional expression. The
   code style mandates the assignment to be done outside of it.
 
-- `ASTERISKNOSPACE`: A pointer was declared like `char* name` instead of the
-   more appropriate `char *name` style. The asterisk should sit next to the
-   name.
+- `ASTERISKNOSPACE`: A pointer was declared like `char* name` instead of the more
+   appropriate `char *name` style. The asterisk should sit next to the name.
 
 - `ASTERISKSPACE`: A pointer was declared like `char * name` instead of the
    more appropriate `char *name` style. The asterisk should sit right next to
@@ -48,27 +47,15 @@ warnings are:
    strcat, strncat, gets are **never** allowed in curl source code.
 
 - `BRACEELSE`: '} else' on the same line. The else is supposed to be on the
-   following line.
+  following line.
 
 - `BRACEPOS`: wrong position for an open brace (`{`).
-
-- `BRACEWHILE`: more than once space between end brace and while keyword
 
 - `COMMANOSPACE`: a comma without following space
 
 - `COPYRIGHT`: the file is missing a copyright statement!
 
-- `CPPCOMMENTS`: `//` comment detected, that is not C89 compliant
-
-- `DOBRACE`: only use one space after do before open brace
-
-- `EMPTYLINEBRACE`: found empty line before open brace
-
-- `EQUALSNOSPACE`: no space after `=` sign
-
-- `EQUALSNULL`: comparison with `== NULL` used in if/while. We use `!var`.
-
-- `EXCLAMATIONSPACE`: space found after exclamations mark
+- `CPPCOMMENTS`: `//` comment detected, that's not C89 compliant
 
 - `FOPENMODE`: `fopen()` needs a macro for the mode string, use it
 
@@ -82,10 +69,6 @@ warnings are:
 
 - `NOSPACEEQUALS`: An equals sign was found without preceding space. We prefer
   `a = 2` and *not* `a=2`.
-
-- `NOTEQUALSZERO`: check found using `!= 0`. We use plain `if(var)`.
-
-- `ONELINECONDITION`: do not put the conditional block on the same line as `if()`
 
 - `OPENCOMMENT`: File ended with a comment (`/*`) still "open".
 
@@ -115,12 +98,10 @@ warnings are:
 
 - `TABS`: TAB characters are not allowed!
 
-- `TRAILINGSPACE`: Trailing whitespace on the line
-
-- `TYPEDEFSTRUCT`: we frown upon (most) typedefed structs
+- `TRAILINGSPACE`: Trailing white space on the line
 
 - `UNUSEDIGNORE`: a checksrc inlined warning ignore was asked for but not used,
-   that is an ignore that should be removed or changed to get used.
+   that's an ignore that should be removed or changed to get used.
 
 ### Extended warnings
 
@@ -132,7 +113,7 @@ warning per line like so: `enable <EXTENDEDWARNING>`
 
 Currently there is one extended warning which can be enabled:
 
-- `COPYRIGHTYEAR`: the current changeset has not updated the copyright year in
+- `COPYRIGHTYEAR`: the current changeset hasn't updated the copyright year in
    the source file
 
 ## Ignore certain warnings
@@ -159,11 +140,11 @@ This will ignore the warning for overly long lines until it is re-enabled with:
 
     /* !checksrc! enable LONGLINE */
 
-If the enabling is not performed before the end of the file, it will be enabled
+If the enabling isn't performed before the end of the file, it will be enabled
 automatically for the next file.
 
 You can also opt to ignore just N violations so that if you have a single long
-line you just cannot shorten and is agreed to be fine anyway:
+line you just can't shorten and is agreed to be fine anyway:
 
     /* !checksrc! disable LONGLINE 1 */
 
@@ -174,8 +155,8 @@ instances are ignored and nothing extra.
 
 ### Directory wide ignore patterns
 
-This is a method we have transitioned away from. Use inline ignores as far as
+This is a method we've transitioned away from. Use inline ignores as far as
 possible.
 
-Make a `checksrc.skip` file in the directory of the source code with the
+Make a `checksrc.whitelist` file in the directory of the source code with the
 false positive, and include the full offending line into this file.

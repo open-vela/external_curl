@@ -22,7 +22,7 @@ ftp
 FTP with user and no password
  </name>
  <command>
--u user: ftp://%HOSTIP:%FTPPORT/%TESTNUMBER
+-u user: ftp://%HOSTIP:%FTPPORT/136
 </command>
 </client>
 
@@ -34,8 +34,8 @@ PASS
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 136
+RETR 136
 QUIT
 </protocol>
 </verify>
