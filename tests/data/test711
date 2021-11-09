@@ -33,7 +33,7 @@ all_proxy=socks5://%HOSTIP:%SOCKSPORT
 FTP fetch with all_proxy set to socks5
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/711
 </command>
 </client>
 
@@ -46,8 +46,8 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 711
+RETR 711
 QUIT
 </protocol>
 </verify>

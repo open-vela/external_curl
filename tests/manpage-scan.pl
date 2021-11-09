@@ -6,11 +6,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 2016 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 2016 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at https://curl.se/docs/copyright.html.
+# are also available at https://curl.haxx.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -31,7 +31,7 @@
 #
 # src/tool_getparam.c lists all options curl can parse
 # docs/curl.1 documents all command line options
-# src/tool_listhelp.c outputs all options with curl -h
+# src/tool_help.c outputs all options with curl -h
 # - make sure they're all in sync
 #
 # Output all deviances to stderr.
@@ -66,19 +66,12 @@ sub scanmanpage {
     my ($file, @words) = @_;
 
     open(M, "<$file");
-    my @m;
-    while(<M>) {
-        if($_ =~ /^\.IP (.*)/) {
-            my $w = $1;
-            # "unquote" minuses
-            $w =~ s/\\-/-/g;
-            push @m, $w;
-        }
-    }
+    my @m = <M>;
     close(M);
 
     foreach my $m (@words) {
-        my @g = grep(/$m/, @m);
+
+        my @g = grep(/^\.IP $m/, @m);
         if(!$g[0]) {
             print STDERR "Missing mention of $m in $file\n";
             $errors++;
@@ -137,7 +130,7 @@ scanmanpage("$root/docs/libcurl/curl_easy_setopt.3", @curlopt);
 scanmanpage("$root/docs/libcurl/curl_easy_getinfo.3", @curlinfo);
 scanmanpage("$root/docs/libcurl/curl_multi_setopt.3", @curlmopt);
 
-# using this hash array, we can skip specific options
+# using this hash array, we can whitelist specific options
 my %opts = (
     # pretend these --no options exists in tool_getparam.c
     '--no-alpn' => 1,
@@ -147,7 +140,7 @@ my %opts = (
     '--no-keepalive' => 1,
     '--no-progress-meter' => 1,
 
-    # pretend these options without -no exist in curl.1 and tool_listhelp.c
+    # pretend these options without -no exist in curl.1 and tool_help.c
     '--alpn' => 6,
     '--npn' => 6,
     '--eprt' => 6,
@@ -157,7 +150,7 @@ my %opts = (
     '--sessionid' => 6,
     '--progress-meter' => 6,
 
-    # deprecated options do not need to be in tool_listhelp.c nor curl.1
+    # deprecated options do not need to be in tool_help.c nor curl.1
     '--krb4' => 6,
     '--ftp-ssl' => 6,
     '--ftp-ssl-reqd' => 6,
@@ -213,8 +206,7 @@ my @manpage; # store all parsed parameters
 while(<R>) {
     chomp;
     my $l= $_;
-    $l =~ s/\\-/-/g;
-    if($l =~ /^\.IP \"(-[^\"]*)\"/) {
+    if(/^\.IP \"(-[^\"]*)\"/) {
         my $str = $1;
         my $combo;
         if($str =~ /^-(.), --([a-z0-9.-]*)/) {
@@ -236,7 +228,7 @@ close(R);
 
 #########################################################################
 # parse the curl code that outputs the curl -h list
-open(R, "<$root/src/tool_listhelp.c") ||
+open(R, "<$root/src/tool_help.c") ||
     die "no input file";
 my @toolhelp; # store all parsed parameters
 while(<R>) {
@@ -286,14 +278,14 @@ foreach my $o (keys %opts) {
             $missing.= " curl.1";
         }
         if($where & 4) {
-            $exists .= " tool_listhelp.c";
+            $exists .= " tool_help.c";
         }
         else {
-            $missing .= " tool_listhelp.c";
+            $missing .= " tool_help.c";
         }
 
         print STDERR "$o is not in$missing (but in$exists)\n";
     }
 }
 
-print STDERR "$errors\n";
+exit $errors;

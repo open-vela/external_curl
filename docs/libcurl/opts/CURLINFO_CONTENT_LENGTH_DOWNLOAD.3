@@ -9,7 +9,7 @@
 .\" *
 .\" * This software is licensed as described in the file COPYING, which
 .\" * you should have received as part of this distribution. The terms
-.\" * are also available at https://curl.se/docs/copyright.html.
+.\" * are also available at https://curl.haxx.se/docs/copyright.html.
 .\" *
 .\" * You may opt to use, copy, modify, merge, publish, distribute and/or sell
 .\" * copies of the Software, and permit persons to whom the Software is
@@ -31,7 +31,7 @@ CURLcode curl_easy_getinfo(CURL *handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
 .SH DESCRIPTION
 Pass a pointer to a double to receive the content-length of the download. This
 is the value read from the Content-Length: field. Since 7.19.4, this returns
--1 if the size is not known.
+-1 if the size isn't known.
 
 \fICURLINFO_CONTENT_LENGTH_DOWNLOAD_T(3)\fP is a newer replacement that returns a more
 sensible variable type.
@@ -41,7 +41,7 @@ HTTP(S)
 .nf
 CURL *curl = curl_easy_init();
 if(curl) {
-  curl_easy_setopt(curl, CURLOPT_URL, "https://example.com");
+  curl_easy_setopt(curl, CURLOPT_URL, "http://example.com");
 
   /* Perform the request */
   res = curl_easy_perform(curl);
