@@ -19,7 +19,7 @@ http
 </features>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib509
 </tool>
 
 <name>
@@ -34,7 +34,10 @@ nothing
 # Verify data after the test has been "shot"
 <verify>
 <stdout>
-Callbacks were invoked!
+seen custom_calloc()
+seen custom_malloc()
+seen custom_realloc()
+seen custom_free()
 </stdout>
 </verify>
 

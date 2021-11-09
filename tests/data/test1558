@@ -17,16 +17,20 @@ none
 file
 </features>
 <tool>
-lib%TESTNUMBER
+lib1558
 </tool>
 
 <name>
 CURLINFO_PROTOCOL for file:// transfer
 </name>
+<setenv>
+# force MSYS2 to not convert the file: URL
+MSYS2_ARG_CONV_EXCL=file:
+</setenv>
 <command>
-file://%FILE_PWD/log/data%TESTNUMBER
+file:%FILE_PWD/log/data1558
 </command>
-<file name="log/data%TESTNUMBER">
+<file name="log/data1558">
 hello
 </file>
 </client>

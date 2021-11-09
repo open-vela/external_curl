@@ -2,8 +2,6 @@ Long: tftp-no-options
 Help: Do not send any TFTP options
 Protocols: TFTP
 Added: 7.48.0
-Category: tftp
-Example: --tftp-no-options tftp://192.168.0.1/
 ---
 Tells curl not to send TFTP options requests.
 

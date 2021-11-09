@@ -11,7 +11,6 @@ FTP
 REPLY SIZE 550 access to this file is very much denied
 REPLY APPE 550 I said: access to this file is very much denied
 REPLY STOR 550 I said: access to this file is very much denied
-REPLY SIZE 500 command not understood
 </servercmd>
 </reply>
 
@@ -24,9 +23,9 @@ ftp
 FTP resume upload but denied access to remote file
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -T log/file%TESTNUMBER.txt -C -
+ftp://%HOSTIP:%FTPPORT/236 -T log/file236.txt -C -
 </command>
-<file name="log/file%TESTNUMBER.txt">
+<file name="log/file236.txt">
 Test data
 </file>
 </client>
@@ -40,8 +39,8 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-STOR %TESTNUMBER
+SIZE 236
+STOR 236
 QUIT
 </protocol>
 

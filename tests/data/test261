@@ -27,7 +27,7 @@ ftp
 FTP RETR with 226 response code to TYPE
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/261
 </command>
 </client>
 
@@ -40,8 +40,8 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 261
+RETR 261
 QUIT
 </protocol>
 </verify>
