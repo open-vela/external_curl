@@ -2,6 +2,9 @@ Long: proxy-user
 Short: U
 Arg: <user:password>
 Help: Proxy user and password
+Category: proxy auth
+Example: --proxy-user name:pwd -x proxy $URL
+Added: 4.0
 ---
 Specify the user name and password to use for proxy authentication.
 
