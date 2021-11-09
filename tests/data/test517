@@ -17,7 +17,7 @@ none
 </server>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib517
 </tool>
 
  <name>

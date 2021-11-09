@@ -27,17 +27,20 @@ http
 HTTP custom header overrides CURLOPT_TIMECONDITION
 </name>
 <tool>
-lib%TESTNUMBER
+lib1593
 </tool>
 <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/1593
 </command>
 </client>
 
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 # Note here the lack of If-Modified-Since
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /1593 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 
