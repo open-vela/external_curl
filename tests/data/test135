@@ -32,7 +32,7 @@ ftp
 FTP retrieve a byte-range
  </name>
  <command>
--r 4-16 ftp://%HOSTIP:%FTPPORT/%TESTNUMBER
+-r 4-16 ftp://%HOSTIP:%FTPPORT/135
 </command>
 </client>
 
@@ -44,9 +44,9 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
+SIZE 135
 REST 4
-RETR %TESTNUMBER
+RETR 135
 ABOR
 QUIT
 </protocol>
