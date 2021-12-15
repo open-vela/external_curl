@@ -47,17 +47,19 @@ http
 HTTP GET gzip+chunked transfer-encoded content
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER --tr-encoding
+http://%HOSTIP:%HTTPPORT/1124 --tr-encoding
 </command>
 </client>
 
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /1124 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 Connection: TE
 TE: gzip
