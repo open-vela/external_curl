@@ -43,13 +43,13 @@ hello
 http
 </server>
 <tool>
-lib%TESTNUMBER
+lib1515
 </tool>
 <name>
 caching of manual libcurl DNS entries after DNS cache timeout
 </name>
 <command>
-path/%TESTNUMBER %HOSTIP %HTTPPORT
+path/1515 %HOSTIP %HTTPPORT
 </command>
 </client>
 

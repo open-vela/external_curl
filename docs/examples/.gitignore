@@ -1,5 +1,4 @@
 10-at-a-time
-altsvc
 anyauthput
 certinfo
 chkspeed
@@ -16,7 +15,6 @@ ftpsget
 ftpupload
 ftpuploadfrommem
 ftpuploadresume
-getreferrer
 getinfo
 getinmemory
 getredirect
@@ -25,14 +23,11 @@ http2-download
 http2-pushinmemory
 http2-serverpush
 http2-upload
-http3
-http3-present
 httpcustomheader
 httpput
-httpput-postfields
 https
+imap
 imap-append
-imap-authzid
 imap-copy
 imap-create
 imap-delete
@@ -50,13 +45,10 @@ multi-app
 multi-debugcallback
 multi-double
 multi-formadd
-multi-legacy
-multi-poll
 multi-post
 multi-single
 parseurl
 persistent
-pop3-authzid
 pop3-dele
 pop3-list
 pop3-multi
@@ -67,6 +59,8 @@ pop3-stat
 pop3-tls
 pop3-top
 pop3-uidl
+pop3s
+pop3slist
 post-callback
 postinmemory
 postit2
@@ -81,8 +75,8 @@ sftpuploadresume
 shared-connection-cache
 simple
 simplepost
+simplesmtp
 simplessl
-smtp-authzid
 smtp-expn
 smtp-mail
 smtp-mime

@@ -41,30 +41,27 @@ http
 HTTP GET with chunked Transfer-Encoding closed prematurely
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/207
 </command>
 </client>
 
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /207 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
 </protocol>
 
 # curl: (18) transfer closed with outstanding read data remaining
 # 18 == CURLE_PARTIAL_FILE
-# 56 == CURLE_RECV_ERROR
 <errorcode>
-%if hyper
-56
-%else
 18
-%endif
 </errorcode>
 </verify>
 </testcase>
