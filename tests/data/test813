@@ -23,7 +23,7 @@ imap
 IMAP RENAME mailbox (CUSTOMREQUEST)
  </name>
  <command>
-imap://%HOSTIP:%IMAPPORT -u user:secret -X 'RENAME 666 %TESTNUMBER'
+imap://%HOSTIP:%IMAPPORT -u user:secret -X 'RENAME 666 813'
 </command>
 </client>
 
@@ -33,7 +33,7 @@ imap://%HOSTIP:%IMAPPORT -u user:secret -X 'RENAME 666 %TESTNUMBER'
 <protocol>
 A001 CAPABILITY
 A002 LOGIN user secret
-A003 RENAME 666 %TESTNUMBER
+A003 RENAME 666 813
 A004 LOGOUT
 </protocol>
 </verify>
