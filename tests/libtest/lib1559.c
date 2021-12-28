@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -34,6 +34,9 @@ int test(char *URL)
   CURLU *u;
   (void)URL;
 
+  if(!longurl)
+    return 1;
+
   memset(longurl, 'a', EXCESSIVE);
   longurl[EXCESSIVE-1] = 0;
 
@@ -51,26 +54,19 @@ int test(char *URL)
   u = curl_url();
   if(u) {
     CURLUcode uc = curl_url_set(u, CURLUPART_URL, longurl, 0);
-    printf("CURLUPART_URL %d bytes URL == %d\n",
-           EXCESSIVE, (int)uc);
+    printf("CURLUPART_URL %d bytes URL == %d (%s)\n",
+           EXCESSIVE, (int)uc, curl_url_strerror(uc));
     uc = curl_url_set(u, CURLUPART_SCHEME, longurl, CURLU_NON_SUPPORT_SCHEME);
-    printf("CURLUPART_SCHEME %d bytes scheme == %d\n",
-           EXCESSIVE, (int)uc);
+    printf("CURLUPART_SCHEME %d bytes scheme == %d (%s)\n",
+           EXCESSIVE, (int)uc, curl_url_strerror(uc));
     uc = curl_url_set(u, CURLUPART_USER, longurl, 0);
-    printf("CURLUPART_USER %d bytes user == %d\n",
-           EXCESSIVE, (int)uc);
+    printf("CURLUPART_USER %d bytes user == %d (%s)\n",
+           EXCESSIVE, (int)uc, curl_url_strerror(uc));
     curl_url_cleanup(u);
   }
 
-  free(longurl);
-
-  curl_easy_cleanup(curl);
-  curl_global_cleanup();
-
-  return 0;
-
 test_cleanup:
-
+  free(longurl);
   curl_easy_cleanup(curl);
   curl_global_cleanup();
 
