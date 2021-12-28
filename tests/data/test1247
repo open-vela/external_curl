@@ -17,13 +17,13 @@ HTTP
 # Client-side
 <client>
 <server>
-http
+none
 </server>
  <name>
 --fail-early
  </name>
  <command>
---fail-early h1234://%HOSTIP:%HTTPPORT/%TESTNUMBER http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+--fail-early h1234://%HOSTIP:%HTTPPORT/1247 http://%HOSTIP:%HTTPPORT/1247
 </command>
 </client>
 

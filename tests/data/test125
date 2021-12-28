@@ -21,7 +21,7 @@ ftp
 FTP download, failed CWD
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/path/to/file/%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/path/to/file/125
 </command>
 </client>
 
