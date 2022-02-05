@@ -15,7 +15,6 @@ HTTP/1.1 200 OK
 Date: Sun, 19 Jan 2014 18:50:58 GMT
 Server: test-server/fake swsclose
 Connection: close
-
 </data>
 </reply>
 
@@ -25,13 +24,13 @@ Connection: close
 http
 </server>
 <tool>
-lib%TESTNUMBER
+lib1514
 </tool>
 <name>
 HTTP POST with read callback and unknown data size
 </name>
 <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/1514
 </command>
 </client>
 
@@ -40,7 +39,7 @@ http://%HOSTIP:%HTTPPORT/%TESTNUMBER
 # Content-Length header is not present
 # Transfer-Encoding header is added automatically
 <protocol>
-POST /%TESTNUMBER HTTP/1.1
+POST /1514 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 Transfer-Encoding: chunked
