@@ -6,11 +6,11 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 2011 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 2011 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
-# are also available at https://curl.se/docs/copyright.html.
+# are also available at https://curl.haxx.se/docs/copyright.html.
 #
 # You may opt to use, copy, modify, merge, publish, distribute and/or sell
 # copies of the Software, and permit persons to whom the Software is
@@ -31,14 +31,14 @@ my $warnings = 0;
 my $swarnings = 0;
 my $errors = 0;
 my $serrors = 0;
-my $suppressed; # skipped problems
+my $suppressed; # whitelisted problems
 my $file;
 my $dir=".";
 my $wlist="";
 my @alist;
-my $windows_os = $^O eq 'MSWin32' || $^O eq 'cygwin' || $^O eq 'msys';
+my $windows_os = $^O eq 'MSWin32' || $^O eq 'msys' || $^O eq 'cygwin';
 my $verbose;
-my %skiplist;
+my %whitelist;
 
 my %ignore;
 my %ignore_set;
@@ -47,13 +47,12 @@ my @ignore_line;
 
 my %warnings_extended = (
     'COPYRIGHTYEAR'    => 'copyright year incorrect',
-    'STRERROR',        => 'strerror() detected',
     );
 
 my %warnings = (
     'LONGLINE'         => "Line longer than $max_column",
     'TABS'             => 'TAB characters not allowed',
-    'TRAILINGSPACE'    => 'Trailing whitespace on the line',
+    'TRAILINGSPACE'    => 'Trailing white space on the line',
     'CPPCOMMENTS'      => '// comment detected',
     'SPACEBEFOREPAREN' => 'space before an open parenthesis',
     'SPACEAFTERPAREN'  => 'space after open parenthesis',
@@ -81,22 +80,14 @@ my %warnings = (
     'MULTISPACE'       => 'multiple spaces used when not suitable',
     'SIZEOFNOPAREN'    => 'use of sizeof without parentheses',
     'SNPRINTF'         => 'use of snprintf',
-    'ONELINECONDITION' => 'conditional block on the same line as the if()',
-    'TYPEDEFSTRUCT'    => 'typedefed struct',
-    'DOBRACE'          => 'A single space between do and open brace',
-    'BRACEWHILE'       => 'A single space between open brace and while',
-    'EXCLAMATIONSPACE' => 'Whitespace after exclamation mark in expression',
-    'EMPTYLINEBRACE'   => 'Empty line before the open brace',
-    'EQUALSNULL'       => 'if/while comparison with == NULL',
-    'NOTEQUALSZERO',   => 'if/while comparison with != 0',
     );
 
-sub readskiplist {
-    open(W, "<$dir/checksrc.skip") or return;
+sub readwhitelist {
+    open(W, "<$dir/checksrc.whitelist") or return;
     my @all=<W>;
     for(@all) {
         $windows_os ? $_ =~ s/\r?\n$// : chomp;
-        $skiplist{$_}=1;
+        $whitelist{$_}=1;
     }
     close(W);
 }
@@ -124,19 +115,10 @@ sub readlocalfile {
             }
             $warnings{$1} = $warnings_extended{$1};
         }
-        elsif (/^\s*disable ([A-Z]+)$/) {
-            if(!defined($warnings{$1})) {
-                print STDERR "invalid warning specified in .checksrc: \"$1\"\n";
-                next;
-            }
-            # Accept-list
-            push @alist, $1;
-        }
         else {
             die "Invalid format in $dir/.checksrc on line $i\n";
         }
     }
-    close($rcfile);
 }
 
 sub checkwarn {
@@ -149,8 +131,8 @@ sub checkwarn {
     #    print STDERR "Dev! there's no description for $name!\n";
     #}
 
-    # checksrc.skip
-    if($skiplist{$line}) {
+    # checksrc.whitelist
+    if($whitelist{$line}) {
         $nowarn = 1;
     }
     # !checksrc! controlled
@@ -235,25 +217,17 @@ if(!$file) {
     print "  -A[rule]  Accept this violation, can be used multiple times\n";
     print "  -D[DIR]   Directory to prepend file names\n";
     print "  -h        Show help output\n";
-    print "  -W[file]  Skip the given file - ignore all its flaws\n";
+    print "  -W[file]  Whitelist the given file - ignore all its flaws\n";
     print "  -i<n>     Indent spaces. Default: 2\n";
     print "  -m<n>     Maximum line length. Default: 79\n";
     print "\nDetects and warns for these problems:\n";
-    my @allw = keys %warnings;
-    push @allw, keys %warnings_extended;
-    for my $w (sort @allw) {
-        if($warnings{$w}) {
-            printf (" %-18s: %s\n", $w, $warnings{$w});
-        }
-        else {
-            printf (" %-18s: %s[*]\n", $w, $warnings_extended{$w});
-        }
+    for(sort keys %warnings) {
+        printf (" %-18s: %s\n", $_, $warnings{$_});
     }
-    print " [*] = disabled by default\n";
     exit;
 }
 
-readskiplist();
+readwhitelist();
 readlocalfile();
 
 do {
@@ -370,10 +344,7 @@ sub scanfile {
 
     my $line = 1;
     my $prevl="";
-    my $prevpl="";
-    my $l = "";
-    my $prep = 0;
-    my $prevp = 0;
+    my $l;
     open(R, "<$file") || die "failed to open $file";
 
     my $incomment=0;
@@ -415,7 +386,7 @@ sub scanfile {
             checkwarn("TABS",
                       $line, length($1), $file, $l, "Contains TAB character", 1);
         }
-        # detect trailing whitespace
+        # detect trailing white space
         if($l =~ /^(.*)[ \t]+\z/) {
             checkwarn("TRAILINGSPACE",
                       $line, length($1), $file, $l, "Trailing whitespace");
@@ -455,26 +426,11 @@ sub scanfile {
         # comments
         # ------------------------------------------------------------
 
-        # prev line was a preprocessor **and** ended with a backslash
-        if($prep && ($prevpl =~ /\\ *\z/)) {
-            # this is still a preprocessor line
-            $prep = 1;
-            goto preproc;
-        }
-        $prep = 0;
-
         # crude attempt to detect // comments without too many false
         # positives
-        if($l =~ /^(([^"\*]*)[^:"]|)\/\//) {
+        if($l =~ /^([^"\*]*)[^:"]\/\//) {
             checkwarn("CPPCOMMENTS",
                       $line, length($1), $file, $l, "\/\/ comment");
-        }
-
-        # detect and strip preprocessor directives
-        if($l =~ /^[ \t]*\#/) {
-            # preprocessor line
-            $prep = 1;
-            goto preproc;
         }
 
         my $nostr = nostrings($l);
@@ -500,56 +456,13 @@ sub scanfile {
                           "$2 with space");
             }
         }
-        # check for '== NULL' in if/while conditions but not if the thing on
-        # the left of it is a function call
-        if($nostr =~ /^(.*)(if|while)(\(.*?)([!=]= NULL|NULL [!=]=)/) {
-            checkwarn("EQUALSNULL", $line,
-                      length($1) + length($2) + length($3),
-                      $file, $l, "we prefer !variable instead of \"== NULL\" comparisons");
-        }
 
-        # check for '!= 0' in if/while conditions but not if the thing on
-        # the left of it is a function call
-        if($nostr =~ /^(.*)(if|while)(\(.*[^)]) != 0[^x]/) {
-            checkwarn("NOTEQUALSZERO", $line,
-                      length($1) + length($2) + length($3),
-                      $file, $l, "we prefer if(rc) instead of \"rc != 0\" comparisons");
-        }
-
-        # check spaces in 'do {'
-        if($nostr =~ /^( *)do( *)\{/ && length($2) != 1) {
-            checkwarn("DOBRACE", $line, length($1) + 2, $file, $l, "one space after do before brace");
-        }
-        # check spaces in 'do {'
-        elsif($nostr =~ /^( *)\}( *)while/ && length($2) != 1) {
-            checkwarn("BRACEWHILE", $line, length($1) + 2, $file, $l, "one space between brace and while");
-        }
-        if($nostr =~ /^((.*\s)(if) *\()(.*)\)(.*)/) {
+        if($nostr =~ /^((.*)(if) *\()(.*)\)/) {
             my $pos = length($1);
-            my $postparen = $5;
-            my $cond = $4;
-            if($cond =~ / = /) {
+            if($4 =~ / = /) {
                 checkwarn("ASSIGNWITHINCONDITION",
                           $line, $pos+1, $file, $l,
                           "assignment within conditional expression");
-            }
-            my $temp = $cond;
-            $temp =~ s/\(//g; # remove open parens
-            my $openc = length($cond) - length($temp);
-
-            $temp = $cond;
-            $temp =~ s/\)//g; # remove close parens
-            my $closec = length($cond) - length($temp);
-            my $even = $openc == $closec;
-
-            if($l =~ / *\#/) {
-                # this is a #if, treat it differently
-            }
-            elsif($even && $postparen &&
-               ($postparen !~ /^ *$/) && ($postparen !~ /^ *[,{&|\\]+/)) {
-                checkwarn("ONELINECONDITION",
-                          $line, length($l)-length($postparen), $file, $l,
-                          "conditional block on the same line");
             }
         }
         # check spaces after open parentheses
@@ -638,22 +551,16 @@ sub scanfile {
             checkwarn("PARENBRACE",
                       $line, length($1)+1, $file, $l, "missing space after close paren");
         }
-        # check for "^{" with an empty line before it
-        if(($l =~ /^\{/) && ($prevl =~ /^[ \t]*\z/)) {
-            checkwarn("EMPTYLINEBRACE",
-                      $line, 0, $file, $l, "empty line before open brace");
-        }
 
         # check for space before the semicolon last in a line
         if($l =~ /^(.*[^ ].*) ;$/) {
             checkwarn("SPACESEMICOLON",
-                      $line, length($1), $file, $ol, "no space before semicolon");
+                      $line, length($1), $file, $ol, "space before last semicolon");
         }
 
         # scan for use of banned functions
         if($l =~ /^(.*\W)
-                   (gmtime|localtime|
-                    gets|
+                   (gets|
                     strtok|
                     v?sprintf|
                     (str|_mbs|_tcs|_wcs)n?cat|
@@ -664,18 +571,7 @@ sub scanfile {
                       $line, length($1), $file, $ol,
                       "use of $2 is banned");
         }
-        if($warnings{"STRERROR"}) {
-            # scan for use of banned strerror. This is not a BANNEDFUNC to
-            # allow for individual enable/disable of this warning.
-            if($l =~ /^(.*\W)(strerror)\s*\(/x) {
-                if($1 !~ /^ *\#/) {
-                    # skip preprocessor lines
-                    checkwarn("STRERROR",
-                              $line, length($1), $file, $ol,
-                              "use of $2 is banned");
-                }
-            }
-        }
+
         # scan for use of snprintf for curl-internals reasons
         if($l =~ /^(.*\W)(v?snprintf)\s*\(/x) {
             checkwarn("SNPRINTF",
@@ -693,9 +589,10 @@ sub scanfile {
             }
         }
 
-        # check for open brace first on line but not first column only alert
-        # if previous line ended with a close paren and it wasn't a cpp line
-        if(($prevl =~ /\)\z/) && ($l =~ /^( +)\{/) && !$prevp) {
+        # check for open brace first on line but not first column
+        # only alert if previous line ended with a close paren and wasn't a cpp
+        # line
+        if((($prevl =~ /\)\z/) && ($prevl !~ /^ *#/)) && ($l =~ /^( +)\{/)) {
             checkwarn("BRACEPOS",
                       $line, length($1), $file, $ol, "badly placed open brace");
         }
@@ -703,10 +600,11 @@ sub scanfile {
         # if the previous line starts with if/while/for AND ends with an open
         # brace, or an else statement, check that this line is indented $indent
         # more steps, if not a cpp line
-        if(!$prevp && ($prevl =~ /^( *)((if|while|for)\(.*\{|else)\z/)) {
+        if($prevl =~ /^( *)((if|while|for)\(.*\{|else)\z/) {
             my $first = length($1);
+
             # this line has some character besides spaces
-            if($l =~ /^( *)[^ ]/) {
+            if(($l !~ /^ *#/) && ($l =~ /^( *)[^ ]/)) {
                 my $second = length($1);
                 my $expect = $first+$indent;
                 if($expect != $second) {
@@ -719,10 +617,10 @@ sub scanfile {
         }
 
         # check for 'char * name'
-        if(($l =~ /(^.*(char|int|long|void|CURL|CURLM|CURLMsg|[cC]url_[A-Za-z_]+|struct [a-zA-Z_]+) *(\*+)) (\w+)/) && ($4 !~ /^(const|volatile)$/)) {
-            checkwarn("ASTERISKSPACE",
+        if(($l =~ /(^.*(char|int|long|void|curl_slist|CURL|CURLM|CURLMsg|curl_httppost) *(\*+)) (\w+)/) && ($4 ne "const")) {
+            checkwarn("ASTERISKNOSPACE",
                       $line, length($1), $file, $ol,
-                      "space after declarative asterisk");
+                      "no space after declarative asterisk");
         }
         # check for 'char*'
         if(($l =~ /(^.*(char|int|long|void|curl_slist|CURL|CURLM|CURLMsg|curl_httppost|sockaddr_in|FILE)\*)/)) {
@@ -777,19 +675,6 @@ sub scanfile {
                       "no space after semicolon");
         }
 
-        # typedef struct ... {
-        if($nostr =~ /^(.*)typedef struct.*{/) {
-            checkwarn("TYPEDEFSTRUCT",
-                      $line, length($1)+1, $file, $ol,
-                      "typedef'ed struct");
-        }
-
-        if($nostr =~ /(.*)! +(\w|\()/) {
-            checkwarn("EXCLAMATIONSPACE",
-                      $line, length($1)+1, $file, $ol,
-                      "space after exclamation mark");
-        }
-
         # check for more than one consecutive space before open brace or
         # question mark. Skip lines containing strings since they make it hard
         # due to artificially getting multiple spaces
@@ -797,13 +682,13 @@ sub scanfile {
            $nostr =~ /^(.*(\S)) + [{?]/i) {
             checkwarn("MULTISPACE",
                       $line, length($1)+1, $file, $ol,
-                      "multiple spaces");
+                      "multiple space");
+            print STDERR "L: $l\n";
+            print STDERR "nostr: $nostr\n";
         }
-      preproc:
+
         $line++;
-        $prevp = $prep;
-        $prevl = $ol if(!$prep);
-        $prevpl = $ol if($prep);
+        $prevl = $ol;
     }
 
     if(!scalar(@copyright)) {
@@ -827,22 +712,17 @@ sub scanfile {
         # A rather more interesting, and correct, check would be to not test
         # only locally committed files but inspect all files wrt the year of
         # their last commit. Removing the `git rev-list origin/master..HEAD`
-        # condition below will enforce copyright year checks against the year
+        # condition below will enfore copyright year checks against the year
         # the file was last committed (and thus edited to some degree).
         my $commityear = undef;
         @copyright = sort {$$b{year} cmp $$a{year}} @copyright;
 
-        # if the file is modified, assume commit year this year
         if(`git status -s -- $file` =~ /^ [MARCU]/) {
             $commityear = (localtime(time))[5] + 1900;
         }
-        else {
-            # min-parents=1 to ignore wrong initial commit in truncated repos
-            my $grl = `git rev-list --max-count=1 --min-parents=1 --timestamp HEAD -- $file`;
-            if($grl) {
-                chomp $grl;
-                $commityear = (localtime((split(/ /, $grl))[0]))[5] + 1900;
-            }
+        elsif (`git rev-list --count origin/master..HEAD -- $file` !~ /^0/) {
+            my $grl = `git rev-list --max-count=1 --timestamp HEAD -- $file`;
+            $commityear = (localtime((split(/ /, $grl))[0]))[5] + 1900;
         }
 
         if(defined($commityear) && scalar(@copyright) &&

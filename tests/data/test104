@@ -21,7 +21,7 @@ ftp
 FTP --head to get file size only
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/a/path/%TESTNUMBER --head
+ftp://%HOSTIP:%FTPPORT/a/path/104 --head
 </command>
 </client>
 
@@ -33,9 +33,9 @@ PASS ftp@example.com
 PWD
 CWD a
 CWD path
-MDTM %TESTNUMBER
+MDTM 104
 TYPE I
-SIZE %TESTNUMBER
+SIZE 104
 REST 0
 QUIT
 </protocol>

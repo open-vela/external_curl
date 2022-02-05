@@ -2,9 +2,9 @@
 
 ## Simple Usage
 
-Get the main page from a web-server:
+Get the main page from Netscape's web-server:
 
-    curl https://www.example.com/
+    curl http://www.netscape.com/
 
 Get the README file the user's home directory at funet's ftp-server:
 
@@ -16,7 +16,7 @@ Get a web page from a server using port 8000:
 
 Get a directory listing of an FTP site:
 
-    curl ftp://ftp.funet.fi
+    curl ftp://cool.haxx.se/
 
 Get the definition of curl from a dictionary:
 
@@ -24,7 +24,7 @@ Get the definition of curl from a dictionary:
 
 Fetch two documents at once:
 
-    curl ftp://ftp.funet.fi/ http://www.weirdserver.com:8000/
+    curl ftp://cool.haxx.se/ http://www.weirdserver.com:8000/
 
 Get a file off an FTPS server:
 
@@ -61,17 +61,17 @@ Get a file from an SMB server:
 
 Get a web page and store in a local file with a specific name:
 
-    curl -o thatpage.html http://www.example.com/
+    curl -o thatpage.html http://www.netscape.com/
 
 Get a web page and store in a local file, make the local file get the name of
 the remote document (if no file name part is specified in the URL, this will
 fail):
 
-    curl -O http://www.example.com/index.html
+    curl -O http://www.netscape.com/index.html
 
 Fetch two files and store them with their remote names:
 
-    curl -O www.haxx.se/index.html -O curl.se/download.html
+    curl -O www.haxx.se/index.html -O curl.haxx.se/download.html
 
 ## Using Passwords
 
@@ -243,10 +243,10 @@ For other ways to do HTTP data upload, see the POST section below.
 
 ## Verbose / Debug
 
-If curl fails where it is not supposed to, if the servers do not let you in, if
-you cannot understand the responses: use the `-v` flag to get verbose
+If curl fails where it isn't supposed to, if the servers don't let you in, if
+you can't understand the responses: use the `-v` flag to get verbose
 fetching. Curl will output lots of info and what it sends and receives in
-order to let the user see all client-server interaction (but it will not show you
+order to let the user see all client-server interaction (but it won't show you
 the actual data).
 
     curl -v ftp://ftp.upload.com/
@@ -273,10 +273,10 @@ will then store the headers in the specified file.
 
 Store the HTTP headers in a separate file (headers.txt in the example):
 
-      curl --dump-header headers.txt curl.se
+      curl --dump-header headers.txt curl.haxx.se
 
-Note that headers stored in a separate file can be useful at a later time if
-you want curl to use cookies sent by the server. More about that in the
+Note that headers stored in a separate file can be very useful at a later time
+if you want curl to use cookies sent by the server. More about that in the
 cookies section.
 
 ## POST (HTTP)
@@ -307,14 +307,12 @@ Example:
 
 (page located at `http://www.formpost.com/getthis/`)
 
-```html
-<form action="post.cgi" method="post">
-<input name=user size=10>
-<input name=pass type=password size=10>
-<input name=id type=hidden value="blablabla">
-<input name=ding value="submit">
-</form>
-```
+    <form action="post.cgi" method="post">
+    <input name=user size=10>
+    <input name=pass type=password size=10>
+    <input name=id type=hidden value="blablabla">
+    <input name=ding value="submit">
+    </form>
 
 We want to enter user 'foobar' with password '12345'.
 
@@ -373,7 +371,7 @@ allow a user to trick curl into uploading a file.
 ## Referrer
 
 An HTTP request has the option to include information about which address
-referred it to the actual page. curl allows you to specify the referrer to be
+referred it to the actual page.  Curl allows you to specify the referrer to be
 used on the command line. It is especially useful to fool or trick stupid
 servers or CGI scripts that rely on that information being available or
 contain certain data.
@@ -419,11 +417,9 @@ the "cookie" should be used for (by specifying `path=value`), when the cookie
 should expire (`expire=DATE`), for what domain to use it (`domain=NAME`) and
 if it should be used on secure connections only (`secure`).
 
-If you have received a page from a server that contains a header like:
+If you've received a page from a server that contains a header like:
 
-```http
-Set-Cookie: sessionid=boo123; path="/foo";
-```
+    Set-Cookie: sessionid=boo123; path="/foo";
 
 it means the server wants that first pair passed on when we get anything in a
 path beginning with "/foo".
@@ -445,7 +441,7 @@ cookies from the 'headers' file like:
 
 While saving headers to a file is a working way to store cookies, it is
 however error-prone and not the preferred way to do this. Instead, make curl
-save the incoming cookies using the well-known Netscape cookie format like
+save the incoming cookies using the well-known netscape cookie format like
 this:
 
     curl -c cookies.txt www.example.com
@@ -458,13 +454,13 @@ non-existing file to trigger the cookie awareness like:
     curl -L -b empty.txt www.example.com
 
 The file to read cookies from must be formatted using plain HTTP headers OR as
-Netscape's cookie file. Curl will determine what kind it is based on the file
-contents. In the above command, curl will parse the header and store the
-cookies received from www.example.com. curl will send to the server the
-stored cookies which match the request as it follows the location. The file
+netscape's cookie file. Curl will determine what kind it is based on the file
+contents.  In the above command, curl will parse the header and store the
+cookies received from www.example.com.  curl will send to the server the
+stored cookies which match the request as it follows the location.  The file
 "empty.txt" may be a nonexistent file.
 
-To read and write cookies from a Netscape cookie file, you can set both `-b`
+To read and write cookies from a netscape cookie file, you can set both `-b`
 and `-c` to use the same file:
 
     curl -b cookies.txt -c cookies.txt www.example.com
@@ -494,7 +490,7 @@ From left-to-right:
  - Curr.Speed    - the average transfer speed the last 5 seconds (the first
                    5 seconds of a transfer is based on less time of course.)
 
-The `-#` option will display a totally different progress bar that does not
+The `-#` option will display a totally different progress bar that doesn't
 need much explanation!
 
 ## Speed Limit
@@ -509,14 +505,14 @@ second for 1 minute, run:
 
     curl -Y 3000 -y 60 www.far-away-site.com
 
-This can be used in combination with the overall time limit, so that the above
-operation must be completed in whole within 30 minutes:
+This can very well be used in combination with the overall time limit, so
+that the above operation must be completed in whole within 30 minutes:
 
     curl -m 1800 -Y 3000 -y 60 www.far-away-site.com
 
 Forcing curl not to transfer data faster than a given rate is also possible,
-which might be useful if you are using a limited bandwidth connection and you
-do not want your transfer to use all of it (sometimes referred to as
+which might be useful if you're using a limited bandwidth connection and you
+don't want your transfer to use all of it (sometimes referred to as
 "bandwidth throttle").
 
 Make curl transfer data no faster than 10 kilobytes per second:
@@ -560,7 +556,7 @@ Example, set default time out and proxy in a config file:
     # ... and we use a proxy for all accesses:
     proxy = proxy.our.domain.com:8080
 
-Whitespaces ARE significant at the end of lines, but all whitespace leading
+White spaces ARE significant at the end of lines, but all white spaces leading
 up to the first characters of each line are ignored.
 
 Prevent curl from reading the default file by using -q as the first command
@@ -575,7 +571,7 @@ URL by making a config file similar to:
     url = "http://help.with.curl.com/curlhelp.html"
 
 You can specify another config file to be read by using the `-K`/`--config`
-flag. If you set config file name to `-` it will read the config from stdin,
+flag. If you set config file name to `-` it'll read the config from stdin,
 which can be handy if you want to hide options from being visible in process
 tables etc:
 
@@ -583,9 +579,9 @@ tables etc:
 
 ## Extra Headers
 
-When using curl in your own programs, you may end up needing to pass on your
-own custom headers when getting a web page. You can do this by using the `-H`
-flag.
+When using curl in your own very special programs, you may end up needing
+to pass on your own custom headers when getting a web page. You can do
+this by using the `-H` flag.
 
 Example, send the header `X-you-and-me: yes` to the server when getting a
 page:
@@ -603,13 +599,13 @@ header from being used:
 ## FTP and Path Names
 
 Do note that when getting files with a `ftp://` URL, the given path is
-relative to the directory you enter. To get the file `README` from your home
+relative the directory you enter. To get the file `README` from your home
 directory at your ftp site, do:
 
     curl ftp://user:passwd@my.site.com/README
 
-If you want the README file from the root directory of that same site, you
-need to specify the absolute file name:
+But if you want the README file from the root directory of that very same
+site, you need to specify the absolute file name:
 
     curl ftp://user:passwd@my.site.com//README
 
@@ -631,13 +627,13 @@ do this.
 
 The default way for curl is to issue the PASV command which causes the server
 to open another port and await another connection performed by the
-client. This is good if the client is behind a firewall that does not allow
+client. This is good if the client is behind a firewall that doesn't allow
 incoming connections.
 
     curl ftp.download.com
 
-If the server, for example, is behind a firewall that does not allow
-connections on ports other than 21 (or if it just does not support the `PASV`
+If the server, for example, is behind a firewall that doesn't allow
+connections on ports other than 21 (or if it just doesn't support the `PASV`
 command), the other way to do it is to use the `PORT` command and instruct the
 server to connect to the client on the given IP number and port (as parameters
 to the PORT command).
@@ -661,11 +657,11 @@ Download with `PORT` but use 192.168.0.10 as our IP address to use:
 
 Get a web page from a server using a specified port for the interface:
 
-    curl --interface eth0:1 http://www.example.com/
+    curl --interface eth0:1 http://www.netscape.com/
 
 or
 
-    curl --interface 192.168.1.10 http://www.example.com/
+    curl --interface 192.168.1.10 http://www.netscape.com/
 
 ## HTTPS
 
@@ -705,7 +701,7 @@ Otherwise, curl will attempt to use a sensible TLS default version.
 ## Resuming File Transfers
 
 To continue a file transfer where it was previously aborted, curl supports
-resume on HTTP(S) downloads as well as FTP uploads and downloads.
+esume on HTTP(S) downloads as well as FTP uploads and downloads.
 
 Continue downloading a document:
 
@@ -749,7 +745,7 @@ For fun try
 
     curl dict://dict.org/m:curl
     curl dict://dict.org/d:heisenbug:jargon
-    curl dict://dict.org/d:daniel:gcide
+    curl dict://dict.org/d:daniel:web1913
 
 Aliases for 'm' are 'match' and 'find', and aliases for 'd' are 'define' and
 'lookup'. For example,
@@ -767,16 +763,16 @@ Authentication support is still missing
 ## LDAP
 
 If you have installed the OpenLDAP library, curl can take advantage of it and
-offer `ldap://` support. On Windows, curl will use WinLDAP from Platform SDK
+offer `ldap://` support.  On Windows, curl will use WinLDAP from Platform SDK
 by default.
 
-Default protocol version used by curl is LDAPv3. LDAPv2 will be used as a
-fallback mechanism in case LDAPv3 fails to connect.
+Default protocol version used by curl is LDAPv3. LDAPv2 will be used as
+fallback mechanism in case if LDAPv3 will fail to connect.
 
 LDAP is a complex thing and writing an LDAP query is not an easy task. I do
 advise you to dig up the syntax description for that elsewhere. One such place
 might be: [RFC 2255, The LDAP URL
-Format](https://curl.se/rfc/rfc2255.txt)
+Format](https://curl.haxx.se/rfc/rfc2255.txt)
 
 To show you an example, this is how I can get all people from my local LDAP
 server that has a certain sub-domain in their email address:
@@ -791,7 +787,7 @@ You also can use authentication when accessing LDAP catalog:
     curl -u user:passwd "ldap://ldap.frontec.se/o=frontec??sub?mail=*"
     curl "ldap://user:passwd@ldap.frontec.se/o=frontec??sub?mail=*"
 
-By default, if user and password are provided, OpenLDAP/WinLDAP will use basic
+By default, if user and password provided, OpenLDAP/WinLDAP will use basic
 authentication. On Windows you can control this behavior by providing one of
 `--basic`, `--ntlm` or `--digest` option in curl command line
 
@@ -811,7 +807,7 @@ with
 
     ALL_PROXY
 
-A comma-separated list of host names that should not go through any proxy is
+A comma-separated list of host names that shouldn't go through any proxy is
 set in (only an asterisk, `*` matches all hosts)
 
     NO_PROXY
@@ -830,18 +826,18 @@ The usage of the `-x`/`--proxy` flag overrides the environment variables.
 
 Unix introduced the `.netrc` concept a long time ago. It is a way for a user
 to specify name and password for commonly visited FTP sites in a file so that
-you do not have to type them in each time you visit those sites. You realize
+you don't have to type them in each time you visit those sites. You realize
 this is a big security risk if someone else gets hold of your passwords, so
-therefore most unix programs will not read this file unless it is only readable
-by yourself (curl does not care though).
+therefore most unix programs won't read this file unless it is only readable
+by yourself (curl doesn't care though).
 
 Curl supports `.netrc` files if told to (using the `-n`/`--netrc` and
 `--netrc-optional` options). This is not restricted to just FTP, so curl can
 use it for all protocols where authentication is used.
 
-A simple `.netrc` file could look something like:
+A very simple `.netrc` file could look something like:
 
-    machine curl.se login iamdaniel password mysecret
+    machine curl.haxx.se login iamdaniel password mysecret
 
 ## Custom Output
 
@@ -869,9 +865,9 @@ curl ask for one and you already entered the real password to kinit/kauth.
 
 ## TELNET
 
-The curl telnet support is basic and easy to use. Curl passes all data passed
-to it on stdin to the remote server. Connect to a remote telnet server using a
-command line similar to:
+The curl telnet support is basic and very easy to use. Curl passes all data
+passed to it on stdin to the remote server. Connect to a remote telnet server
+using a command line similar to:
 
     curl telnet://remote.server.com
 
@@ -892,7 +888,7 @@ Other interesting options for it `-t` include:
  - `NEW_ENV=<var,val>` Sets an environment variable.
 
 NOTE: The telnet protocol does not specify any way to login with a specified
-user and password so curl cannot do that automatically. To do that, you need to
+user and password so curl can't do that automatically. To do that, you need to
 track when the login prompt is received and send the username and password
 accordingly.
 
@@ -909,7 +905,7 @@ better use of the network.
 
 Note that curl cannot use persistent connections for transfers that are used
 in subsequence curl invokes. Try to stuff as many URLs as possible on the same
-command line if they are using the same host, as that will make the transfers
+command line if they are using the same host, as that'll make the transfers
 faster. If you use an HTTP proxy for file transfers, practically all transfers
 will be persistent.
 
@@ -941,7 +937,7 @@ syntax:
     http://[2001:1890:1112:1::20]/overview.html
 
 When this style is used, the `-g` option must be given to stop curl from
-interpreting the square brackets as special globbing characters. Link local
+interpreting the square brackets as special globbing characters.  Link local
 and site local addresses including a scope identifier, such as `fe80::1234%1`,
 may also be used, but the scope portion must be numeric or match an existing
 network interface on Linux and the percent character must be URL escaped. The
@@ -952,11 +948,36 @@ previous example in an SFTP URL might look like:
 IPv6 addresses provided other than in URLs (e.g. to the `--proxy`,
 `--interface` or `--ftp-port` options) should not be URL encoded.
 
+## Metalink
+
+Curl supports Metalink (both version 3 and 4 (RFC 5854) are supported), a way
+to list multiple URIs and hashes for a file. Curl will make use of the mirrors
+listed within for failover if there are errors (such as the file or server not
+being available). It will also verify the hash of the file after the download
+completes. The Metalink file itself is downloaded and processed in memory and
+not stored in the local file system.
+
+Example to use a remote Metalink file:
+
+    curl --metalink http://www.example.com/example.metalink
+
+To use a Metalink file in the local file system, use FILE protocol
+(`file://`):
+
+    curl --metalink file://example.metalink
+
+Please note that if FILE protocol is disabled, there is no way to use a local
+Metalink file at the time of this writing. Also note that if `--metalink` and
+`--include` are used together, `--include` will be ignored. This is because
+including headers in the response will break Metalink parser and if the
+headers are included in the file described in Metalink file, hash check will
+fail.
+
 ## Mailing Lists
 
 For your convenience, we have several open mailing lists to discuss curl, its
 development and things relevant to this. Get all info at
-https://curl.se/mail/.
+https://curl.haxx.se/mail/.
 
 Please direct curl questions, feature requests and trouble reports to one of
 these mailing lists instead of mailing any individual.
@@ -965,7 +986,7 @@ Available lists include:
 
 ### curl-users
 
-Users of the command line tool. How to use it, what does not work, new
+Users of the command line tool. How to use it, what doesn't work, new
 features, related tools, questions, news, installations, compilations,
 running, porting etc.
 

@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -19,6 +19,8 @@
  * KIND, either express or implied.
  *
  ***************************************************************************/
+
+/* !checksrc! disable ASSIGNWITHINCONDITION all */
 
 /* Now include the curl_setup.h file from libcurl's private libdir (the source
    version, but that might include "curl_config.h" from the build dir so we
@@ -34,19 +36,19 @@
 #ifdef HAVE_SYS_SELECT_H
 /* since so many tests use select(), we can just as well include it here */
 #include <sys/select.h>
-#elif defined(HAVE_UNISTD_H)
-#include <unistd.h>
+#endif
+
+#ifdef TPF
+#  include "select.h"
 #endif
 
 #include "curl_printf.h"
 
-#define test_setopt(A,B,C)                                      \
-  if((res = curl_easy_setopt((A), (B), (C))) != CURLE_OK)       \
-    goto test_cleanup
+#define test_setopt(A,B,C) \
+  if((res = curl_easy_setopt((A), (B), (C))) != CURLE_OK) goto test_cleanup
 
-#define test_multi_setopt(A,B,C)                                \
-  if((res = curl_multi_setopt((A), (B), (C))) != CURLE_OK)      \
-    goto test_cleanup
+#define test_multi_setopt(A,B,C) \
+  if((res = curl_multi_setopt((A), (B), (C))) != CURLE_OK) goto test_cleanup
 
 extern char *libtest_arg2; /* set by first.c to the argv[2] or NULL */
 extern char *libtest_arg3; /* set by first.c to the argv[3] or NULL */
@@ -80,18 +82,18 @@ extern int unitfail;
 ** For portability reasons TEST_ERR_* values should be less than 127.
 */
 
-#define TEST_ERR_MAJOR_BAD     (CURLcode) 126
-#define TEST_ERR_RUNS_FOREVER  (CURLcode) 125
-#define TEST_ERR_EASY_INIT     (CURLcode) 124
-#define TEST_ERR_MULTI         (CURLcode) 123
-#define TEST_ERR_NUM_HANDLES   (CURLcode) 122
-#define TEST_ERR_SELECT        (CURLcode) 121
-#define TEST_ERR_SUCCESS       (CURLcode) 120
-#define TEST_ERR_FAILURE       (CURLcode) 119
-#define TEST_ERR_USAGE         (CURLcode) 118
-#define TEST_ERR_FOPEN         (CURLcode) 117
-#define TEST_ERR_FSTAT         (CURLcode) 116
-#define TEST_ERR_BAD_TIMEOUT   (CURLcode) 115
+#define TEST_ERR_MAJOR_BAD     126
+#define TEST_ERR_RUNS_FOREVER  125
+#define TEST_ERR_EASY_INIT     124
+#define TEST_ERR_MULTI_INIT    123
+#define TEST_ERR_NUM_HANDLES   122
+#define TEST_ERR_SELECT        121
+#define TEST_ERR_SUCCESS       120
+#define TEST_ERR_FAILURE       119
+#define TEST_ERR_USAGE         118
+#define TEST_ERR_FOPEN         117
+#define TEST_ERR_FSTAT         116
+#define TEST_ERR_BAD_TIMEOUT   115
 
 /*
 ** Macros for test source code readability/maintainability.
@@ -129,7 +131,7 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_easy_init() failed\n", (Y), (Z)); \
     res = TEST_ERR_EASY_INIT;                                     \
   }                                                               \
-} while(0)
+} WHILE_FALSE
 
 #define res_easy_init(A) \
   exe_easy_init((A), (__FILE__), (__LINE__))
@@ -138,7 +140,7 @@ extern int unitfail;
   exe_easy_init((A), (Y), (Z));   \
   if(res)                         \
     goto test_cleanup;            \
-} while(0)
+} WHILE_FALSE
 
 #define easy_init(A) \
   chk_easy_init((A), (__FILE__), (__LINE__))
@@ -148,9 +150,9 @@ extern int unitfail;
 #define exe_multi_init(A,Y,Z) do {                                 \
   if(((A) = curl_multi_init()) == NULL) {                          \
     fprintf(stderr, "%s:%d curl_multi_init() failed\n", (Y), (Z)); \
-    res = TEST_ERR_MULTI;                                          \
+    res = TEST_ERR_MULTI_INIT;                                     \
   }                                                                \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_init(A) \
   exe_multi_init((A), (__FILE__), (__LINE__))
@@ -159,7 +161,7 @@ extern int unitfail;
   exe_multi_init((A), (Y), (Z));   \
   if(res)                          \
     goto test_cleanup;             \
-} while(0)
+} WHILE_FALSE
 
 #define multi_init(A) \
   chk_multi_init((A), (__FILE__), (__LINE__))
@@ -172,9 +174,9 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_easy_setopt() failed, "    \
             "with code %d (%s)\n",                         \
             (Y), (Z), (int)ec, curl_easy_strerror(ec));    \
-    res = ec;                                              \
+    res = (int)ec;                                         \
   }                                                        \
-} while(0)
+} WHILE_FALSE
 
 #define res_easy_setopt(A, B, C) \
   exe_easy_setopt((A), (B), (C), (__FILE__), (__LINE__))
@@ -183,7 +185,7 @@ extern int unitfail;
   exe_easy_setopt((A), (B), (C), (Y), (Z)); \
   if(res)                                   \
     goto test_cleanup;                      \
-} while(0)
+} WHILE_FALSE
 
 #define easy_setopt(A, B, C) \
   chk_easy_setopt((A), (B), (C), (__FILE__), (__LINE__))
@@ -196,9 +198,9 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_multi_setopt() failed, "    \
             "with code %d (%s)\n",                          \
             (Y), (Z), (int)ec, curl_multi_strerror(ec));    \
-    res = TEST_ERR_MULTI;                                   \
+    res = (int)ec;                                          \
   }                                                         \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_setopt(A,B,C) \
   exe_multi_setopt((A), (B), (C), (__FILE__), (__LINE__))
@@ -207,7 +209,7 @@ extern int unitfail;
   exe_multi_setopt((A), (B), (C), (Y), (Z)); \
   if(res)                                    \
     goto test_cleanup;                       \
-} while(0)
+} WHILE_FALSE
 
 #define multi_setopt(A,B,C) \
   chk_multi_setopt((A), (B), (C), (__FILE__), (__LINE__))
@@ -220,9 +222,9 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_multi_add_handle() failed, " \
             "with code %d (%s)\n",                           \
             (Y), (Z), (int)ec, curl_multi_strerror(ec));     \
-    res = TEST_ERR_MULTI;                                    \
+    res = (int)ec;                                           \
   }                                                          \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_add_handle(A, B) \
   exe_multi_add_handle((A), (B), (__FILE__), (__LINE__))
@@ -231,7 +233,7 @@ extern int unitfail;
   exe_multi_add_handle((A), (B), (Y), (Z));   \
   if(res)                                     \
     goto test_cleanup;                        \
-} while(0)
+} WHILE_FALSE
 
 #define multi_add_handle(A, B) \
   chk_multi_add_handle((A), (B), (__FILE__), (__LINE__))
@@ -244,9 +246,9 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_multi_remove_handle() failed, " \
             "with code %d (%s)\n",                              \
             (Y), (Z), (int)ec, curl_multi_strerror(ec));        \
-    res = TEST_ERR_MULTI;                                       \
+    res = (int)ec;                                              \
   }                                                             \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_remove_handle(A, B) \
   exe_multi_remove_handle((A), (B), (__FILE__), (__LINE__))
@@ -255,7 +257,7 @@ extern int unitfail;
   exe_multi_remove_handle((A), (B), (Y), (Z));   \
   if(res)                                        \
     goto test_cleanup;                           \
-} while(0)
+} WHILE_FALSE
 
 
 #define multi_remove_handle(A, B) \
@@ -269,7 +271,7 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_multi_perform() failed, "        \
             "with code %d (%s)\n",                               \
             (Y), (Z), (int)ec, curl_multi_strerror(ec));         \
-    res = TEST_ERR_MULTI;                                        \
+    res = (int)ec;                                               \
   }                                                              \
   else if(*((B)) < 0) {                                          \
     fprintf(stderr, "%s:%d curl_multi_perform() succeeded, "     \
@@ -277,7 +279,7 @@ extern int unitfail;
             (Y), (Z), (int)*((B)));                              \
     res = TEST_ERR_NUM_HANDLES;                                  \
   }                                                              \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_perform(A, B) \
   exe_multi_perform((A), (B), (__FILE__), (__LINE__))
@@ -286,7 +288,7 @@ extern int unitfail;
   exe_multi_perform((A), (B), (Y), (Z));   \
   if(res)                                  \
     goto test_cleanup;                     \
-} while(0)
+} WHILE_FALSE
 
 #define multi_perform(A,B) \
   chk_multi_perform((A), (B), (__FILE__), (__LINE__))
@@ -299,7 +301,7 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_multi_fdset() failed, "              \
             "with code %d (%s)\n",                                   \
             (Y), (Z), (int)ec, curl_multi_strerror(ec));             \
-    res = TEST_ERR_MULTI;                                            \
+    res = (int)ec;                                                   \
   }                                                                  \
   else if(*((E)) < -1) {                                             \
     fprintf(stderr, "%s:%d curl_multi_fdset() succeeded, "           \
@@ -307,7 +309,7 @@ extern int unitfail;
             (Y), (Z), (int)*((E)));                                  \
     res = TEST_ERR_NUM_HANDLES;                                      \
   }                                                                  \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_fdset(A, B, C, D, E) \
   exe_multi_fdset((A), (B), (C), (D), (E), (__FILE__), (__LINE__))
@@ -316,7 +318,7 @@ extern int unitfail;
     exe_multi_fdset((A), (B), (C), (D), (E), (Y), (Z)); \
     if(res)                                             \
       goto test_cleanup;                                \
-  } while(0)
+  } WHILE_FALSE
 
 #define multi_fdset(A, B, C, D, E) \
   chk_multi_fdset((A), (B), (C), (D), (E), (__FILE__), (__LINE__))
@@ -329,7 +331,7 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_multi_timeout() failed, "    \
             "with code %d (%s)\n",                           \
             (Y), (Z), (int)ec, curl_multi_strerror(ec));     \
-    res = TEST_ERR_BAD_TIMEOUT;                              \
+    res = (int)ec;                                           \
   }                                                          \
   else if(*((B)) < -1L) {                                    \
     fprintf(stderr, "%s:%d curl_multi_timeout() succeeded, " \
@@ -337,7 +339,7 @@ extern int unitfail;
             (Y), (Z), (long)*((B)));                         \
     res = TEST_ERR_BAD_TIMEOUT;                              \
   }                                                          \
-} while(0)
+} WHILE_FALSE
 
 #define res_multi_timeout(A, B) \
   exe_multi_timeout((A), (B), (__FILE__), (__LINE__))
@@ -346,64 +348,10 @@ extern int unitfail;
     exe_multi_timeout((A), (B), (Y), (Z)); \
     if(res)                                \
       goto test_cleanup;                   \
-  } while(0)
+  } WHILE_FALSE
 
 #define multi_timeout(A, B) \
   chk_multi_timeout((A), (B), (__FILE__), (__LINE__))
-
-/* ---------------------------------------------------------------- */
-
-#define exe_multi_poll(A,B,C,D,E,Y,Z) do {                          \
-  CURLMcode ec;                                                     \
-  if((ec = curl_multi_poll((A), (B), (C), (D), (E))) != CURLM_OK) { \
-    fprintf(stderr, "%s:%d curl_multi_poll() failed, "              \
-            "with code %d (%s)\n",                                  \
-            (Y), (Z), (int)ec, curl_multi_strerror(ec));            \
-    res = TEST_ERR_MULTI;                                           \
-  }                                                                 \
-  else if(*((E)) < 0) {                                             \
-    fprintf(stderr, "%s:%d curl_multi_poll() succeeded, "           \
-            "but returned invalid numfds value (%d)\n",             \
-            (Y), (Z), (int)*((E)));                                 \
-    res = TEST_ERR_NUM_HANDLES;                                     \
-  }                                                                 \
-} while(0)
-
-#define res_multi_poll(A, B, C, D, E) \
-  exe_multi_poll((A), (B), (C), (D), (E), (__FILE__), (__LINE__))
-
-#define chk_multi_poll(A, B, C, D, E, Y, Z) do {     \
-  exe_multi_poll((A), (B), (C), (D), (E), (Y), (Z)); \
-  if(res)                                            \
-    goto test_cleanup;                               \
-} while(0)
-
-#define multi_poll(A, B, C, D, E) \
-  chk_multi_poll((A), (B), (C), (D), (E), (__FILE__), (__LINE__))
-
-/* ---------------------------------------------------------------- */
-
-#define exe_multi_wakeup(A,Y,Z) do {                     \
-  CURLMcode ec;                                          \
-  if((ec = curl_multi_wakeup((A))) != CURLM_OK) {        \
-    fprintf(stderr, "%s:%d curl_multi_wakeup() failed, " \
-            "with code %d (%s)\n",                       \
-            (Y), (Z), (int)ec, curl_multi_strerror(ec)); \
-    res = TEST_ERR_MULTI;                                \
-  }                                                      \
-} while(0)
-
-#define res_multi_wakeup(A) \
-  exe_multi_wakeup((A), (__FILE__), (__LINE__))
-
-#define chk_multi_wakeup(A, Y, Z) do { \
-  exe_multi_wakeup((A), (Y), (Z));     \
-  if(res)                              \
-    goto test_cleanup;                 \
-} while(0)
-
-#define multi_wakeup(A) \
-  chk_multi_wakeup((A), (__FILE__), (__LINE__))
 
 /* ---------------------------------------------------------------- */
 
@@ -416,7 +364,7 @@ extern int unitfail;
               (Y), (Z), ec, strerror(ec));                      \
       res = TEST_ERR_SELECT;                                    \
     }                                                           \
-  } while(0)
+  } WHILE_FALSE
 
 #define res_select_test(A, B, C, D, E) \
   exe_select_test((A), (B), (C), (D), (E), (__FILE__), (__LINE__))
@@ -425,7 +373,7 @@ extern int unitfail;
     exe_select_test((A), (B), (C), (D), (E), (Y), (Z)); \
     if(res)                                             \
       goto test_cleanup;                                \
-  } while(0)
+  } WHILE_FALSE
 
 #define select_test(A, B, C, D, E) \
   chk_select_test((A), (B), (C), (D), (E), (__FILE__), (__LINE__))
@@ -434,7 +382,7 @@ extern int unitfail;
 
 #define start_test_timing() do { \
   tv_test_start = tutil_tvnow(); \
-} while(0)
+} WHILE_FALSE
 
 #define exe_test_timedout(Y,Z) do {                                    \
   if(tutil_tvdiff(tutil_tvnow(), tv_test_start) > TEST_HANG_TIMEOUT) { \
@@ -442,7 +390,7 @@ extern int unitfail;
                     "that it would have run forever.\n", (Y), (Z));    \
     res = TEST_ERR_RUNS_FOREVER;                                       \
   }                                                                    \
-} while(0)
+} WHILE_FALSE
 
 #define res_test_timedout() \
   exe_test_timedout((__FILE__), (__LINE__))
@@ -451,7 +399,7 @@ extern int unitfail;
     exe_test_timedout(Y, Z);         \
     if(res)                          \
       goto test_cleanup;             \
-  } while(0)
+  } WHILE_FALSE
 
 #define abort_on_test_timeout() \
   chk_test_timedout((__FILE__), (__LINE__))
@@ -464,9 +412,9 @@ extern int unitfail;
     fprintf(stderr, "%s:%d curl_global_init() failed, " \
             "with code %d (%s)\n",                      \
             (Y), (Z), (int)ec, curl_easy_strerror(ec)); \
-    res = ec;                                           \
+    res = (int)ec;                                      \
   }                                                     \
-} while(0)
+} WHILE_FALSE
 
 #define res_global_init(A) \
   exe_global_init((A), (__FILE__), (__LINE__))
@@ -475,7 +423,7 @@ extern int unitfail;
     exe_global_init((A), (Y), (Z));   \
     if(res)                           \
       return res;                     \
-  } while(0)
+  } WHILE_FALSE
 
 /* global_init() is different than other macros. In case of
    failure it 'return's instead of going to 'test_cleanup'. */
