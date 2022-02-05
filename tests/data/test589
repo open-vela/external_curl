@@ -12,7 +12,7 @@ HTTP MIME
 <reply>
 <data>
 HTTP/1.1 200 OK swsclose
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Server: test-server/fake
 Content-Length: 3
 
@@ -27,22 +27,25 @@ http
 </server>
 # tool is what to use instead of 'curl'
 <tool>
-lib%TESTNUMBER
+lib589
 </tool>
 
  <name>
 make a HTTP MIME POST set to NULL
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/589
 </command>
 </client>
 
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-POST /%TESTNUMBER HTTP/1.1
+POST /589 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Accept: */*
 Content-Length: 0
