@@ -35,17 +35,19 @@ http
 HTTP POST a non-existing file
  </name>
  <command>
- -d @nonesuchfile http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+ -d @nonesuchfile http://%HOSTIP:%HTTPPORT/268
 </command>
 </client>
 
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-POST /%TESTNUMBER HTTP/1.1
+POST /268 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 Content-Length: 0
 Content-Type: application/x-www-form-urlencoded

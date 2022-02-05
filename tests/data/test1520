@@ -13,7 +13,7 @@ SMTP
 smtp
 </server>
 <tool>
-lib%TESTNUMBER
+lib1520
 </tool>
 
  <name>
@@ -32,7 +32,7 @@ To: another
 body
 </stdin>
  <command>
-smtp://%HOSTIP:%SMTPPORT/%TESTNUMBER
+smtp://%HOSTIP:%SMTPPORT/1520
 </command>
 </client>
 
@@ -40,7 +40,7 @@ smtp://%HOSTIP:%SMTPPORT/%TESTNUMBER
 # Verify data after the test has been "shot"
 <verify>
 <protocol>
-EHLO %TESTNUMBER
+EHLO 1520
 MAIL FROM:<sender@example.com>
 RCPT TO:<recipient@example.com>
 DATA

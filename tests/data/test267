@@ -56,7 +56,6 @@ Finally, this is the real page!
 <client>
 <features>
 NTLM
-SSL
 !SSPI
 debug
 </features>
@@ -73,7 +72,7 @@ CURL_GETHOSTNAME=curlhost
 LD_PRELOAD=%PWD/libtest/.libs/libhostname.so
  </setenv>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER -u testuser:testpass --ntlm -d "data" -H "Header1: yes" -H "Header2: no"
+http://%HOSTIP:%HTTPPORT/267 -u testuser:testpass --ntlm -d "data" -H "Header1: yes" -H "Header2: no"
 </command>
 <precheck>
 chkhostname curlhost
@@ -82,21 +81,24 @@ chkhostname curlhost
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol nonewline="yes">
-POST /%TESTNUMBER HTTP/1.1
+POST /267 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Authorization: NTLM TlRMTVNTUAABAAAABoIIAAAAAAAAAAAAAAAAAAAAAAA=
-User-Agent: curl/%VERSION
+User-Agent: curl/7.10.6-pre1 (i686-pc-linux-gnu) libcurl/7.10.6-pre1 OpenSSL/0.9.7a ipv6 zlib/1.1.3
 Accept: */*
 Header1: yes
 Header2: no
 Content-Length: 0
 Content-Type: application/x-www-form-urlencoded
 
-POST /%TESTNUMBER HTTP/1.1
+POST /267 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-Authorization: NTLM TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAAIAAgAeAAAAAAAAAAAAAAAhoIBAFpkQwKRCZFMhjj0tw47wEjKHRHlvzfxQamFcheMuv8v+xeqphEO5V41xRd7R9deOXRlc3R1c2VyY3VybGhvc3Q=
-User-Agent: curl/%VERSION
+Authorization: NTLM TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAAIAAgAeAAAAAAAAAAAAAAAhoIBADQzMjE1MzIxAAAAAAAAAAAAAAAAAAAAADj3hs3u3j0kgJqCrLM+74BmaoNHDfIJjHRlc3R1c2VyY3VybGhvc3Q=
+User-Agent: curl/7.10.6-pre1 (i686-pc-linux-gnu) libcurl/7.10.6-pre1 OpenSSL/0.9.7a ipv6 zlib/1.1.3
 Accept: */*
 Header1: yes
 Header2: no
