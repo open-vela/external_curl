@@ -17,7 +17,6 @@
 include $(APPDIR)/Make.defs
 
 CFLAGS += -I.
-CFLAGS += -DBUILDING_LIBCURL
 CFLAGS += -DHAVE_CONFIG_H
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(APPDIR)/external/curl/include}
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(APPDIR)/external/zlib}
