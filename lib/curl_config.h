@@ -1,7 +1,9 @@
+#include <nuttx/config.h>
+
 /* lib/curl_config.h.in.  Generated somehow by cmake.  */
 
 /* when building libcurl itself */
-/* #undef BUILDING_LIBCURL */
+#define BUILDING_LIBCURL 1
 
 /* Location of default ca bundle */
 #define CURL_CA_BUNDLE CONFIG_LIB_CURL_CA_BUNDLE
@@ -83,7 +85,9 @@
 /* #undef EGD_SOCKET */
 
 /* Define if you want to enable IPv6 support */
+#ifdef CONFIG_NET_IPv6
 #define ENABLE_IPV6 1
+#endif
 
 /* Define to the type qualifier of arg 1 for getnameinfo. */
 /* #undef GETNAMEINFO_QUAL_ARG1 */
@@ -146,7 +150,9 @@
 /* #undef HAVE_DES_H */
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
+#ifdef CONFIG_LIBC_DLFCN
 #define HAVE_DLFCN_H 1
+#endif
 
 /* Define to 1 if you have the `ENGINE_load_builtin_engines' function. */
 /* #undef HAVE_ENGINE_LOAD_BUILTIN_ENGINES */
@@ -155,7 +161,7 @@
 #define HAVE_ERRNO_H 1
 
 /* Define to 1 if you have the <err.h> header file. */
-/* #undef HAVE_ERR_H */
+#define HAVE_ERR_H 1
 
 /* Define to 1 if you have the fcntl function. */
 #define HAVE_FCNTL 1
@@ -167,7 +173,7 @@
 #define HAVE_FCNTL_O_NONBLOCK 1
 
 /* Define to 1 if you have the fdopen function. */
-/* #undef HAVE_FDOPEN */
+#define HAVE_FDOPEN 1
 
 /* Define to 1 if you have the `fork' function. */
 /* #undef HAVE_FORK */
@@ -176,7 +182,7 @@
 #define HAVE_FREEADDRINFO 1
 
 /* Define to 1 if you have the freeifaddrs function. */
-/* #undef HAVE_FREEIFADDRS */
+#define HAVE_FREEIFADDRS 1
 
 /* Define to 1 if you have the ftruncate function. */
 #define HAVE_FTRUNCATE 1
@@ -221,7 +227,7 @@
 #define HAVE_GETHOSTNAME 1
 
 /* Define to 1 if you have a working getifaddrs function. */
-/* #undef HAVE_GETIFADDRS */
+#define HAVE_GETIFADDRS 1
 
 /* Define to 1 if you have the getnameinfo function. */
 #define HAVE_GETNAMEINFO 1
@@ -230,10 +236,10 @@
 /* #undef HAVE_GETPASS_R */
 
 /* Define to 1 if you have the `getppid' function. */
-/* #undef HAVE_GETPPID */
+#define HAVE_GETPPID 1
 
 /* Define to 1 if you have the `getprotobyname' function. */
-/* #undef HAVE_GETPROTOBYNAME */
+#define HAVE_GETPROTOBYNAME 1
 
 /* Define to 1 if you have the `getpeername' function. */
 #define HAVE_GETPEERNAME 1
@@ -251,7 +257,7 @@
 #define HAVE_GETPWUID_R 1
 
 /* Define to 1 if you have the `getrlimit' function. */
-/* #undef HAVE_GETRLIMIT */
+#define HAVE_GETRLIMIT 1
 
 /* Define to 1 if you have the getservbyport_r function. */
 #define HAVE_GETSERVBYPORT_R 1
@@ -296,7 +302,7 @@
 /* #undef HAVE_IDN_FREE_H */
 
 /* Define to 1 if you have the <ifaddrs.h> header file. */
-/* #undef HAVE_IFADDRS_H */
+#define HAVE_IFADDRS_H 1
 
 /* Define to 1 if you have the `inet_addr' function. */
 #define HAVE_INET_ADDR 1
@@ -336,7 +342,7 @@
 /* #undef HAVE_IOCTLSOCKET_FIONBIO */
 
 /* Define to 1 if you have a working ioctl FIONBIO function. */
-/* #undef HAVE_IOCTL_FIONBIO */
+#define HAVE_IOCTL_FIONBIO 1
 
 /* Define to 1 if you have a working ioctl SIOCGIFADDR function. */
 #define HAVE_IOCTL_SIOCGIFADDR 1
@@ -408,7 +414,9 @@
 /* #undef HAVE_LIBSSH2_H */
 
 /* if zlib is available */
+#ifdef CONFIG_LIB_ZLIB
 #define HAVE_LIBZ 1
+#endif
 
 /* if brotli is available */
 /* #undef HAVE_BROTLI */
@@ -546,13 +554,13 @@
 /* #undef HAVE_SETMODE */
 
 /* Define to 1 if you have the `setrlimit' function. */
-/* #undef HAVE_SETRLIMIT */
+#define HAVE_SETRLIMIT 1
 
 /* Define to 1 if you have the setsockopt function. */
 #define HAVE_SETSOCKOPT 1
 
 /* Define to 1 if you have a working setsockopt SO_NONBLOCK function. */
-/* #undef HAVE_SETSOCKOPT_SO_NONBLOCK */
+#define HAVE_SETSOCKOPT_SO_NONBLOCK 1
 
 /* Define to 1 if you have the <sgtty.h> header file. */
 /* #undef HAVE_SGTTY_H */
@@ -576,7 +584,7 @@
 #define HAVE_SIG_ATOMIC_T 1
 
 /* Define to 1 if sig_atomic_t is already defined as volatile. */
-/* #undef HAVE_SIG_ATOMIC_T_VOLATILE */
+#define HAVE_SIG_ATOMIC_T_VOLATILE 1
 
 /* Define to 1 if struct sockaddr_in6 has the sin6_scope_id member */
 #define HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID 1
@@ -624,10 +632,10 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the strlcat function. */
-/* #undef HAVE_STRLCAT */
+#define HAVE_STRLCAT 1
 
 /* Define to 1 if you have the `strlcpy' function. */
-/* #undef HAVE_STRLCPY */
+#define HAVE_STRLCPY 1
 
 /* Define to 1 if you have the strncasecmp function. */
 #define HAVE_STRNCASECMP 1
@@ -720,10 +728,10 @@
 #define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `utime' function. */
-/* #undef HAVE_UTIME */
+#define HAVE_UTIME 1
 
 /* Define to 1 if you have the <utime.h> header file. */
-/* #undef HAVE_UTIME_H */
+#define HAVE_UTIME_H 1
 
 /* Define to 1 if compiler supports C99 variadic macro style. */
 #define HAVE_VARIADIC_MACROS_C99 1
@@ -762,7 +770,9 @@
 /* #undef HAVE_PROCESS_H */
 
 /* if you have the zlib.h header file */
+#ifdef CONFIG_LIB_ZLIB
 #define HAVE_ZLIB_H 1
+#endif
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
@@ -781,7 +791,7 @@
 /* #undef NEED_REENTRANT */
 
 /* cpu-machine-OS */
-#define OS "Linux"
+#define OS "NuttX"
 
 /* Name of package */
 /* #undef PACKAGE */
@@ -907,7 +917,7 @@
 #define SIZEOF_OFF_T 4
 
 /* The size of `curl_off_t', as computed by sizeof. */
-#define SIZEOF_CURL_OFF_T 4
+#define SIZEOF_CURL_OFF_T 8
 
 /* The size of `size_t', as computed by sizeof. */
 #define SIZEOF_SIZE_T 4
@@ -946,7 +956,9 @@
 /* #undef USE_SECTRANSP */
 
 /* if mbedTLS is enabled */
+#ifdef CONFIG_LIB_MBEDTLS
 #define USE_MBEDTLS 1
+#endif
 
 /* if libSSH2 is in use */
 /* #undef USE_LIBSSH2 */
@@ -964,10 +976,14 @@
 /* #undef USE_OPENSSL */
 
 /* to enable NGHTTP2  */
+#ifdef CONFIG_LIB_NGHTTP2
 #define USE_NGHTTP2 1
+#endif
 
 /* if Unix domain sockets are enabled  */
+#ifdef CONFIG_NET_LOCAL
 #define USE_UNIX_SOCKETS
+#endif
 
 /* Define to 1 if you are building a Windows target with large file support. */
 /* #undef USE_WIN32_LARGE_FILES */
