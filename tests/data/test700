@@ -12,7 +12,7 @@ SOCKS4
 <reply>
 <data>
 HTTP/1.1 200 OK
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Server: test-server/fake
 Last-Modified: Tue, 13 Jun 2000 12:10:00 GMT
 ETag: "21025-dc7-39462498"
@@ -29,9 +29,6 @@ Funny-head: yesyes
 #
 # Client-side
 <client>
-<features>
-proxy
-</features>
 <server>
 http
 socks4
@@ -40,17 +37,19 @@ socks4
 HTTP GET via SOCKS4 proxy
  </name>
  <command>
---socks4 %HOSTIP:%SOCKSPORT http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+--socks4 %HOSTIP:%SOCKSPORT http://%HOSTIP:%HTTPPORT/700
 </command>
 </client>
 
 #
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /700 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
 </protocol>

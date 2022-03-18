@@ -29,7 +29,6 @@ pop3
 </server>
 <features>
 NTLM
-SSL
 !SSPI
 </features>
  <name>
@@ -42,7 +41,7 @@ CURL_GETHOSTNAME=curlhost
 LD_PRELOAD=%PWD/libtest/.libs/libhostname.so
  </setenv>
  <command>
-pop3://%HOSTIP:%POP3PORT/%TESTNUMBER -u testuser:testpass
+pop3://%HOSTIP:%POP3PORT/877 -u testuser:testpass
 </command>
 <precheck>
 chkhostname curlhost
