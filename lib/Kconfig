@@ -17,9 +17,6 @@
 config LIB_CURL
 	bool "Enable libcurl"
 	select LIBC_LOCALTIME
-	select LIB_ZLIB
-	select LIB_NGHTTP2
-	select LIB_MBEDTLS
 	select LIBC_SCANSET
 	default n
 	---help---
