@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -41,14 +41,14 @@
 
 #if defined(USE_THREADS_POSIX)
 
-struct Curl_actual_call {
+struct curl_actual_call {
   unsigned int (*func)(void *);
   void *arg;
 };
 
 static void *curl_thread_create_thunk(void *arg)
 {
-  struct Curl_actual_call *ac = arg;
+  struct curl_actual_call * ac = arg;
   unsigned int (*func)(void *) = ac->func;
   void *real_arg = ac->arg;
 
@@ -61,15 +61,23 @@ static void *curl_thread_create_thunk(void *arg)
 
 curl_thread_t Curl_thread_create(unsigned int (*func) (void *), void *arg)
 {
+  int ret = 0;
+  pthread_attr_t attr;
   curl_thread_t t = malloc(sizeof(pthread_t));
-  struct Curl_actual_call *ac = malloc(sizeof(struct Curl_actual_call));
+  struct curl_actual_call *ac = malloc(sizeof(struct curl_actual_call));
   if(!(ac && t))
     goto err;
 
   ac->func = func;
   ac->arg = arg;
 
-  if(pthread_create(t, NULL, curl_thread_create_thunk, ac) != 0)
+  pthread_attr_init(&attr);
+#ifdef CONFIG_LIB_CURL_PTHREAD_STACKSIZE
+  pthread_attr_setstacksize(&attr, CONFIG_LIB_CURL_PTHREAD_STACKSIZE);
+#endif
+  ret = pthread_create(t, &attr, curl_thread_create_thunk, ac);
+  pthread_attr_destroy(&attr);
+  if(ret != 0)
     goto err;
 
   return t;

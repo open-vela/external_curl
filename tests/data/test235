@@ -7,9 +7,6 @@ FTP
 
 # Server-side
 <reply>
-<servercmd>
-REPLY SIZE 500 command not understood
-</servercmd>
 </reply>
 
 # Client-side
@@ -21,9 +18,9 @@ ftp
 FTP resumed upload but no file present remotely
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -T log/upload%TESTNUMBER -C -
+ftp://%HOSTIP:%FTPPORT/235 -T log/upload235 -C -
 </command>
-<file name="log/upload%TESTNUMBER">
+<file name="log/upload235">
 this is the *****crap******** that we're gonna upload
 
 worx?
@@ -38,8 +35,8 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-SIZE %TESTNUMBER
-STOR %TESTNUMBER
+SIZE 235
+STOR 235
 QUIT
 </protocol>
 <upload>
