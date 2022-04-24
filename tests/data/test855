@@ -26,7 +26,7 @@ pop3
 POP3 RETR invalid message
  </name>
  <command>
-pop3://%HOSTIP:%POP3PORT/%TESTNUMBER -u user:secret
+pop3://%HOSTIP:%POP3PORT/855 -u user:secret
 </command>
 </client>
 
@@ -34,13 +34,13 @@ pop3://%HOSTIP:%POP3PORT/%TESTNUMBER -u user:secret
 # Verify data after the test has been "shot"
 <verify>
 <errorcode>
-8
+56
 </errorcode>
 <protocol>
 CAPA
 USER user
 PASS secret
-RETR %TESTNUMBER
+RETR 855
 QUIT
 </protocol>
 </verify>

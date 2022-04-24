@@ -41,7 +41,7 @@ This is not the real page either!
 HTTP/1.1 301 Things are fine in server land swsclose
 Server: Microsoft-IIS/5.0
 Connection: close
-Location: /you/%TESTNUMBER0010
+Location: /you/900010
 
 </data1002>
 
@@ -97,7 +97,7 @@ WWW-Authenticate: NTLM TlRMTVNTUAACAAAAAgACADAAAACGggEAc51AYVDgyNcAAAAAAAAAAG4Ab
 HTTP/1.1 301 Things are fine in server land swsclose
 Server: Microsoft-IIS/5.0
 Connection: close
-Location: /you/%TESTNUMBER0010
+Location: /you/900010
 
 HTTP/1.1 401 Authorization Required swsclose
 Server: Apache/1.3.27 (Darwin) PHP/4.1.2
@@ -127,7 +127,6 @@ Finally, this is the real page!
 <client>
 <features>
 NTLM
-SSL
 !SSPI
 debug
 </features>
@@ -144,7 +143,7 @@ CURL_GETHOSTNAME=curlhost
 LD_PRELOAD=%PWD/libtest/.libs/libhostname.so
  </setenv>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER -u testuser:testpass --anyauth -L
+http://%HOSTIP:%HTTPPORT/90 -u testuser:testpass --anyauth -L
 </command>
 <precheck>
 chkhostname curlhost
@@ -153,39 +152,40 @@ chkhostname curlhost
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /90 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
-GET /%TESTNUMBER HTTP/1.1
+GET /90 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Authorization: NTLM TlRMTVNTUAABAAAABoIIAAAAAAAAAAAAAAAAAAAAAAA=
-User-Agent: curl/%VERSION
+User-Agent: curl/7.10.6-pre1 (i686-pc-linux-gnu) libcurl/7.10.6-pre1 OpenSSL/0.9.7a ipv6 zlib/1.1.3
 Accept: */*
 
-GET /%TESTNUMBER HTTP/1.1
+GET /90 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-Authorization: NTLM TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAAIAAgAeAAAAAAAAAAAAAAAhoIBAFpkQwKRCZFMhjj0tw47wEjKHRHlvzfxQamFcheMuv8v+xeqphEO5V41xRd7R9deOXRlc3R1c2VyY3VybGhvc3Q=
-User-Agent: curl/%VERSION
+Authorization: NTLM TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAAIAAgAeAAAAAAAAAAAAAAAhoIBADQzMjE1MzIxAAAAAAAAAAAAAAAAAAAAADj3hs3u3j0kgJqCrLM+74BmaoNHDfIJjHRlc3R1c2VyY3VybGhvc3Q=
+User-Agent: curl/7.10.6-pre1 (i686-pc-linux-gnu) libcurl/7.10.6-pre1 OpenSSL/0.9.7a ipv6 zlib/1.1.3
 Accept: */*
 
-GET /you/%TESTNUMBER0010 HTTP/1.1
+GET /you/900010 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
-GET /you/%TESTNUMBER0010 HTTP/1.1
+GET /you/900010 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
 Authorization: NTLM TlRMTVNTUAABAAAABoIIAAAAAAAAAAAAAAAAAAAAAAA=
-User-Agent: curl/%VERSION
+User-Agent: curl/7.10.8-pre1 (i686-pc-linux-gnu) libcurl/7.10.8-pre1 OpenSSL/0.9.7a ipv6 zlib/1.1.3 GSS
 Accept: */*
 
-GET /you/%TESTNUMBER0010 HTTP/1.1
+GET /you/900010 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-Authorization: NTLM TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAAIAAgAeAAAAAAAAAAAAAAAhoIBAFpkQwKRCZFMhjj0tw47wEjKHRHlvzfxQamFcheMuv8v+xeqphEO5V41xRd7R9deOXRlc3R1c2VyY3VybGhvc3Q=
-User-Agent: curl/%VERSION
+Authorization: NTLM TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAAIAAgAeAAAAAAAAAAAAAAAhoIBADYzMjE3MzIxAAAAAAAAAAAAAAAAAAAAAEcJ4YHOeb5ga2TCPwDhkyUIuHjBUHcLaHRlc3R1c2VyY3VybGhvc3Q=
+User-Agent: curl/7.10.8-pre1 (i686-pc-linux-gnu) libcurl/7.10.8-pre1 OpenSSL/0.9.7a ipv6 zlib/1.1.3 GSS
 Accept: */*
 
 </protocol>

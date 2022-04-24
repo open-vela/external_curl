@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -22,7 +22,6 @@
 #include "test.h"
 
 #include "testutil.h"
-#include "timediff.h"
 #include "warnless.h"
 #include "memdebug.h"
 
@@ -36,7 +35,7 @@
 
 #define MULTI_PERFORM_HANG_TIMEOUT 60 * 1000
 
-static size_t read_callback(char *ptr, size_t size, size_t nmemb, void *userp)
+static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
 {
   (void)ptr;
   (void)size;
@@ -103,11 +102,11 @@ int test(char *URL)
 
     curl_multi_timeout(mcurl, &curl_timeo);
     if(curl_timeo >= 0) {
-      curlx_mstotv(&timeout, curl_timeo);
-      if(timeout.tv_sec > 1) {
+      timeout.tv_sec = curl_timeo / 1000;
+      if(timeout.tv_sec > 1)
         timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
-      }
+      else
+        timeout.tv_usec = (curl_timeo % 1000) * 1000;
     }
 
     /* get file descriptors from the transfers */

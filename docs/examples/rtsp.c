@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 - 2021, Jim Hollinger
+ * Copyright (c) 2011, Jim Hollinger
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,20 +61,17 @@ static int _getch(void)
 #define VERSION_STR  "V1.0"
 
 /* error handling macros */
-#define my_curl_easy_setopt(A, B, C)                               \
-  do {                                                             \
-    res = curl_easy_setopt((A), (B), (C));                         \
-    if(res != CURLE_OK)                                            \
-      fprintf(stderr, "curl_easy_setopt(%s, %s, %s) failed: %d\n", \
-              #A, #B, #C, res);                                    \
-  } while(0)
+#define my_curl_easy_setopt(A, B, C)                             \
+  res = curl_easy_setopt((A), (B), (C));                         \
+  if(res != CURLE_OK)                                            \
+    fprintf(stderr, "curl_easy_setopt(%s, %s, %s) failed: %d\n", \
+            #A, #B, #C, res);
 
-#define my_curl_easy_perform(A)                                         \
-  do {                                                                  \
-    res = curl_easy_perform(A);                                         \
-    if(res != CURLE_OK)                                                 \
-      fprintf(stderr, "curl_easy_perform(%s) failed: %d\n", #A, res);   \
-  } while(0)
+#define my_curl_easy_perform(A)                                     \
+  res = curl_easy_perform(A);                                       \
+  if(res != CURLE_OK)                                               \
+    fprintf(stderr, "curl_easy_perform(%s) failed: %d\n", #A, res);
+
 
 /* send RTSP OPTIONS request */
 static void rtsp_options(CURL *curl, const char *uri)
@@ -94,7 +91,7 @@ static void rtsp_describe(CURL *curl, const char *uri,
   CURLcode res = CURLE_OK;
   FILE *sdp_fp = fopen(sdp_filename, "wb");
   printf("\nRTSP: DESCRIBE %s\n", uri);
-  if(!sdp_fp) {
+  if(sdp_fp == NULL) {
     fprintf(stderr, "Could not open '%s' for writing\n", sdp_filename);
     sdp_fp = stdout;
   }
@@ -154,7 +151,7 @@ static void get_sdp_filename(const char *url, char *sdp_filename,
 {
   const char *s = strrchr(url, '/');
   strcpy(sdp_filename, "video.sdp");
-  if(s) {
+  if(s != NULL) {
     s++;
     if(s[0] != '\0') {
       snprintf(sdp_filename, namelen, "%s.sdp", s);
@@ -171,9 +168,9 @@ static void get_media_control_attribute(const char *sdp_filename,
   char *s = malloc(max_len);
   FILE *sdp_fp = fopen(sdp_filename, "rb");
   control[0] = '\0';
-  if(sdp_fp) {
-    while(fgets(s, max_len - 2, sdp_fp)) {
-      sscanf(s, " a = control: %32s", control);
+  if(sdp_fp != NULL) {
+    while(fgets(s, max_len - 2, sdp_fp) != NULL) {
+      sscanf(s, " a = control: %s", control);
     }
     fclose(sdp_fp);
   }
@@ -195,17 +192,17 @@ int main(int argc, char * const argv[])
   char *base_name = NULL;
 
   printf("\nRTSP request %s\n", VERSION_STR);
-  printf("    Project website: "
+  printf("    Project web site: "
     "https://github.com/BackupGGCode/rtsprequest\n");
   printf("    Requires curl V7.20 or greater\n\n");
 
   /* check command line */
   if((argc != 2) && (argc != 3)) {
     base_name = strrchr(argv[0], '/');
-    if(!base_name) {
+    if(base_name == NULL) {
       base_name = strrchr(argv[0], '\\');
     }
-    if(!base_name) {
+    if(base_name == NULL) {
       base_name = argv[0];
     }
     else {
@@ -239,7 +236,7 @@ int main(int argc, char * const argv[])
 
       /* initialize this curl session */
       curl = curl_easy_init();
-      if(curl) {
+      if(curl != NULL) {
         my_curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
         my_curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
         my_curl_easy_setopt(curl, CURLOPT_HEADERDATA, stdout);
