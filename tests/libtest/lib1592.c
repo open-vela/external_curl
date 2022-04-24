@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -43,8 +43,7 @@ int test(char *URL)
   int stillRunning;
   CURLM *multiHandle = NULL;
   CURL *curl = NULL;
-  CURLcode res = CURLE_OK;
-  CURLMcode mres;
+  CURLMcode res = CURLM_OK;
   int timeout;
 
   global_init(CURL_GLOBAL_ALL);
@@ -98,11 +97,10 @@ int test(char *URL)
   /* Start measuring how long it takes to remove the handle. */
   fprintf(stderr, "curl_multi_remove_handle()...\n");
   start_test_timing();
-  mres = curl_multi_remove_handle(multiHandle, curl);
-  if(mres) {
+  res = curl_multi_remove_handle(multiHandle, curl);
+  if(res) {
     fprintf(stderr, "curl_multi_remove_handle() failed, "
             "with code %d\n", (int)res);
-    res = TEST_ERR_MULTI;
     goto test_cleanup;
   }
   fprintf(stderr, "curl_multi_remove_handle() succeeded\n");

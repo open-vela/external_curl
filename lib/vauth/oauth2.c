@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -31,6 +31,7 @@
 #include "urldata.h"
 
 #include "vauth/vauth.h"
+#include "curl_base64.h"
 #include "warnless.h"
 #include "curl_printf.h"
 
@@ -41,26 +42,31 @@
 /*
  * Curl_auth_create_oauth_bearer_message()
  *
- * This is used to generate an OAuth 2.0 message ready for sending to the
- * recipient.
+ * This is used to generate an already encoded OAuth 2.0 message ready for
+ * sending to the recipient.
  *
  * Parameters:
  *
+ * data[in]         - The session handle.
  * user[in]         - The user name.
  * host[in]         - The host name.
  * port[in]         - The port(when not Port 80).
  * bearer[in]       - The bearer token.
- * out[out]         - The result storage.
+ * outptr[in / out] - The address where a pointer to newly allocated memory
+ *                    holding the result will be stored upon completion.
+ * outlen[out]      - The length of the output message.
  *
  * Returns CURLE_OK on success.
  */
-CURLcode Curl_auth_create_oauth_bearer_message(const char *user,
+CURLcode Curl_auth_create_oauth_bearer_message(struct Curl_easy *data,
+                                               const char *user,
                                                const char *host,
                                                const long port,
                                                const char *bearer,
-                                               struct bufref *out)
+                                               char **outptr, size_t *outlen)
 {
-  char *oauth;
+  CURLcode result = CURLE_OK;
+  char *oauth = NULL;
 
   /* Generate the message */
   if(port == 0 || port == 80)
@@ -72,34 +78,49 @@ CURLcode Curl_auth_create_oauth_bearer_message(const char *user,
   if(!oauth)
     return CURLE_OUT_OF_MEMORY;
 
-  Curl_bufref_set(out, oauth, strlen(oauth), curl_free);
-  return CURLE_OK;
+  /* Base64 encode the reply */
+  result = Curl_base64_encode(data, oauth, strlen(oauth), outptr, outlen);
+
+  free(oauth);
+
+  return result;
 }
 
 /*
  * Curl_auth_create_xoauth_bearer_message()
  *
- * This is used to generate a XOAuth 2.0 message ready for * sending to the
- * recipient.
+ * This is used to generate an already encoded XOAuth 2.0 message ready for
+ * sending to the recipient.
  *
  * Parameters:
  *
+ * data[in]         - The session handle.
  * user[in]         - The user name.
  * bearer[in]       - The bearer token.
- * out[out]         - The result storage.
+ * outptr[in / out] - The address where a pointer to newly allocated memory
+ *                    holding the result will be stored upon completion.
+ * outlen[out]      - The length of the output message.
  *
  * Returns CURLE_OK on success.
  */
-CURLcode Curl_auth_create_xoauth_bearer_message(const char *user,
+CURLcode Curl_auth_create_xoauth_bearer_message(struct Curl_easy *data,
+                                               const char *user,
                                                const char *bearer,
-                                               struct bufref *out)
+                                               char **outptr, size_t *outlen)
 {
+  CURLcode result = CURLE_OK;
+
   /* Generate the message */
   char *xoauth = aprintf("user=%s\1auth=Bearer %s\1\1", user, bearer);
   if(!xoauth)
     return CURLE_OUT_OF_MEMORY;
 
-  Curl_bufref_set(out, xoauth, strlen(xoauth), curl_free);
-  return CURLE_OK;
+  /* Base64 encode the reply */
+  result = Curl_base64_encode(data, xoauth, strlen(xoauth), outptr, outlen);
+
+  free(xoauth);
+
+  return result;
 }
 #endif /* disabled, no users */
+
