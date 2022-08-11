@@ -20,15 +20,15 @@ multi
 ftp
 </server>
 <tool>
-lib%TESTNUMBER
+lib529
 </tool>
  <name>
 FTP PORT upload using multi interface (weird cleanup function sequence)
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/path/%TESTNUMBER log/upload%TESTNUMBER
+ftp://%HOSTIP:%FTPPORT/path/529 log/upload529
 </command>
-<file name="log/upload%TESTNUMBER">
+<file name="log/upload529">
 Moooooooooooo
  upload this
 </file>
@@ -48,7 +48,7 @@ PWD
 CWD path
 PORT 127,0,0,1,5,109
 TYPE I
-STOR %TESTNUMBER
+STOR 529
 QUIT
 </protocol>
 <upload>

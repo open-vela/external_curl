@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2016, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 #include "test.h"
@@ -31,7 +29,7 @@ int test(char *URL)
 {
   CURL *curl, *dupe = NULL;
   char *scheme;
-  CURLcode res = CURLE_OK;
+  int res = CURLE_OK;
 
   global_init(CURL_GLOBAL_ALL);
 
@@ -46,7 +44,7 @@ int test(char *URL)
             __FILE__, __LINE__, res, curl_easy_strerror(res));
     goto test_cleanup;
   }
-  if(scheme) {
+  if(scheme != NULL) {
     fprintf(stderr, "%s:%d scheme init failed; expected NULL\n",
             __FILE__, __LINE__);
     res = CURLE_FAILED_INIT;
@@ -71,7 +69,7 @@ int test(char *URL)
             __FILE__, __LINE__, res, curl_easy_strerror(res));
     goto test_cleanup;
   }
-  if(!scheme || memcmp(scheme, "HTTP", 5) != 0) {
+  if(memcmp(scheme, "HTTP", 5) != 0) {
     fprintf(stderr, "%s:%d scheme of http resource is incorrect; "
             "expected 'HTTP' but is %s\n",
             __FILE__, __LINE__,
@@ -97,7 +95,7 @@ int test(char *URL)
             __FILE__, __LINE__, res, curl_easy_strerror(res));
     goto test_cleanup;
   }
-  if(scheme) {
+  if(scheme != 0) {
     fprintf(stderr, "%s:%d scheme init failed; expected NULL\n",
             __FILE__, __LINE__);
     res = CURLE_FAILED_INIT;
@@ -116,7 +114,7 @@ int test(char *URL)
             __FILE__, __LINE__, res, curl_easy_strerror(res));
     goto test_cleanup;
   }
-  if(scheme) {
+  if(scheme != 0) {
     fprintf(stderr, "%s:%d scheme init failed; expected NULL\n",
             __FILE__, __LINE__);
     res = CURLE_FAILED_INIT;
@@ -127,5 +125,5 @@ test_cleanup:
   curl_easy_cleanup(curl);
   curl_easy_cleanup(dupe);
   curl_global_cleanup();
-  return (int)res;
+  return res;
 }

@@ -27,7 +27,7 @@ ftp
 FTP RETR PORT with CWD
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/a/path/%TESTNUMBER -P -
+ftp://%HOSTIP:%FTPPORT/a/path/103 -P -
 </command>
 </client>
 
@@ -46,8 +46,8 @@ CWD a
 CWD path
 PORT 127,0,0,1,0,0
 TYPE I
-SIZE %TESTNUMBER
-RETR %TESTNUMBER
+SIZE 103
+RETR 103
 QUIT
 </protocol>
 </verify>

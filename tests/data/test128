@@ -20,9 +20,9 @@ ftp
 FTP upload with --crlf
  </name>
  <command>
-ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -T log/upload%TESTNUMBER --crlf
+ftp://%HOSTIP:%FTPPORT/128 -T log/upload128 --crlf
 </command>
-<file name="log/upload%TESTNUMBER">
+<file name="log/upload128">
 file
 with unix newlines
 meant to be
@@ -41,7 +41,7 @@ PASS ftp@example.com
 PWD
 EPSV
 TYPE I
-STOR %TESTNUMBER
+STOR 128
 QUIT
 </protocol>
 <upload>

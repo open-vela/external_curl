@@ -26,17 +26,19 @@ http
 HTTP GET with URL that contains fragment after the path
  </name>
  <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER#test
+http://%HOSTIP:%HTTPPORT/1109#test
 </command>
 </client>
 
 
 # Verify data after the test has been "shot"
 <verify>
+<strip>
+^User-Agent:.*
+</strip>
 <protocol>
-GET /%TESTNUMBER HTTP/1.1
+GET /1109 HTTP/1.1
 Host: %HOSTIP:%HTTPPORT
-User-Agent: curl/%VERSION
 Accept: */*
 
 </protocol>

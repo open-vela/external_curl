@@ -20,9 +20,6 @@ response 91
 
 # Client-side
 <client>
-<features>
-proxy
-</features>
 <server>
 socks4
 </server>
@@ -34,14 +31,14 @@ proxy
 Attempt connect to non-listening HTTP server via SOCKS4 proxy
  </name>
  <command>
---socks4 %HOSTIP:%SOCKSPORT http://%HOSTIP:%NOLISTENPORT
+--socks4 %HOSTIP:%SOCKSPORT http://%HOSTIP:60000
 </command>
 </client>
 
 # Verify data after the test has been "shot"
 <verify>
 <errorcode>
-97
+7
 </errorcode>
 </verify>
 </testcase>
