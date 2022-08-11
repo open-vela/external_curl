@@ -5,20 +5,9 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2018 - 2022 Jeroen Ooms <jeroenooms@gmail.com>
- *
- * This software is licensed as described in the file COPYING, which
- * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
- *
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
- *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
+ * Web crawler based on curl and libxml2.
+ * Copyright (C) 2018 Jeroen Ooms <jeroenooms@gmail.com>
+ * License: MIT
  *
  * To compile:
  *   gcc crawler.c $(pkg-config --cflags --libs libxml-2.0 libcurl)
@@ -127,8 +116,7 @@ size_t follow_links(CURLM *multi_handle, memory *mem, char *url)
     return 0;
   }
   size_t count = 0;
-  int i;
-  for(i = 0; i < nodeset->nodeNr; i++) {
+  for(int i = 0; i < nodeset->nodeNr; i++) {
     double r = rand();
     int x = r * nodeset->nodeNr / RAND_MAX;
     const xmlNode *node = nodeset->nodeTab[x]->xmlChildrenNode;

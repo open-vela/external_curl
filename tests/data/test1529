@@ -23,13 +23,13 @@ http
 http-proxy
 </server>
 <tool>
-lib%TESTNUMBER
+lib1529
 </tool>
  <name>
 HTTP request-injection in URL sent over proxy
  </name>
  <command>
- "http://the.old.moo:%HTTPPORT/%TESTNUMBER" %HOSTIP:%PROXYPORT
+ "http://the.old.moo:%HTTPPORT/1529" %HOSTIP:%PROXYPORT
 </command>
 <features>
 proxy

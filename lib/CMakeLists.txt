@@ -1,28 +1,4 @@
-#***************************************************************************
-#                                  _   _ ____  _
-#  Project                     ___| | | |  _ \| |
-#                             / __| | | | |_) | |
-#                            | (__| |_| |  _ <| |___
-#                             \___|\___/|_| \_\_____|
-#
-# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
-#
-# This software is licensed as described in the file COPYING, which
-# you should have received as part of this distribution. The terms
-# are also available at https://curl.se/docs/copyright.html.
-#
-# You may opt to use, copy, modify, merge, publish, distribute and/or sell
-# copies of the Software, and permit persons to whom the Software is
-# furnished to do so, under the terms of the COPYING file.
-#
-# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
-# KIND, either express or implied.
-#
-# SPDX-License-Identifier: curl
-#
-###########################################################################
 set(LIB_NAME libcurl)
-set(LIBCURL_OUTPUT_NAME libcurl CACHE STRING "Basename of the curl library")
 
 if(BUILD_SHARED_LIBS)
   set(CURL_STATICLIB NO)
@@ -42,8 +18,9 @@ list(APPEND HHEADERS
   ${CMAKE_CURRENT_BINARY_DIR}/curl_config.h
   )
 
-if(WIN32 AND NOT CURL_STATICLIB)
+if(MSVC)
   list(APPEND CSOURCES libcurl.rc)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4127")
 endif()
 
 # SET(CSOURCES
@@ -52,6 +29,15 @@ endif()
 # # strtok.c - specify later
 # # strtoofft.c - specify later
 # )
+
+# # if we have Kerberos 4, right now this is never on
+# #OPTION(CURL_KRB4 "Use Kerberos 4" OFF)
+# IF(CURL_KRB4)
+# SET(CSOURCES ${CSOURCES}
+# krb4.c
+# security.c
+# )
+# ENDIF(CURL_KRB4)
 
 # #OPTION(CURL_MALLOC_DEBUG "Debug mallocs in Curl" OFF)
 # MARK_AS_ADVANCED(CURL_MALLOC_DEBUG)
@@ -86,21 +72,21 @@ add_library(
   ${HHEADERS} ${CSOURCES}
   )
 
-add_library(
-  ${PROJECT_NAME}::${LIB_NAME}
-  ALIAS ${LIB_NAME}
-  )
+if(MSVC AND NOT BUILD_SHARED_LIBS)
+  set_target_properties(${LIB_NAME} PROPERTIES STATIC_LIBRARY_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+endif()
 
 if(NOT BUILD_SHARED_LIBS)
     set_target_properties(${LIB_NAME} PROPERTIES INTERFACE_COMPILE_DEFINITIONS CURL_STATICLIB)
 endif()
 
-target_link_libraries(${LIB_NAME} PRIVATE ${CURL_LIBS})
+target_link_libraries(${LIB_NAME} ${CURL_LIBS})
 
-set_target_properties(${LIB_NAME} PROPERTIES
-  COMPILE_DEFINITIONS BUILDING_LIBCURL
-  OUTPUT_NAME ${LIBCURL_OUTPUT_NAME}
-  )
+if(WIN32)
+  add_definitions(-D_USRDLL)
+endif()
+
+set_target_properties(${LIB_NAME} PROPERTIES COMPILE_DEFINITIONS BUILDING_LIBCURL)
 
 if(HIDES_CURL_PRIVATE_SYMBOLS)
   set_property(TARGET ${LIB_NAME} APPEND PROPERTY COMPILE_DEFINITIONS "CURL_HIDDEN_SYMBOLS")
@@ -111,24 +97,15 @@ endif()
 set_target_properties(${LIB_NAME} PROPERTIES PREFIX "")
 set_target_properties(${LIB_NAME} PROPERTIES IMPORT_PREFIX "")
 
-if(CURL_HAS_LTO)
-  set_target_properties(${LIB_NAME} PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
-    INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
-endif()
-
 if(WIN32)
   if(BUILD_SHARED_LIBS)
-    if(MSVC)
-      # Add "_imp" as a suffix before the extension to avoid conflicting with
-      # the statically linked "libcurl.lib"
-      set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
-    endif()
+    # Add "_imp" as a suffix before the extension to avoid conflicting with the statically linked "libcurl.lib"
+    set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
   endif()
 endif()
 
 target_include_directories(${LIB_NAME} INTERFACE
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  $<INSTALL_INTERFACE:include>
   $<BUILD_INTERFACE:${CURL_SOURCE_DIR}/include>)
 
 install(TARGETS ${LIB_NAME}
@@ -139,6 +116,6 @@ install(TARGETS ${LIB_NAME}
 )
 
 export(TARGETS ${LIB_NAME}
-       FILE ${PROJECT_BINARY_DIR}/libcurl-target.cmake
-       NAMESPACE ${PROJECT_NAME}::
+       APPEND FILE ${PROJECT_BINARY_DIR}/libcurl-target.cmake
+       NAMESPACE CURL::
 )
