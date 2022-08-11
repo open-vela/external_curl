@@ -11,7 +11,7 @@ shared connections
 <reply>
 <data>
 HTTP/1.1 200 OK
-Date: Tue, 09 Nov 2010 14:49:00 GMT
+Date: Thu, 09 Nov 2010 14:49:00 GMT
 Server: test-server/fake
 Content-Type: text/html
 Content-Length: 29
@@ -29,21 +29,7 @@ run 1: foobar and so on fun!
 <- Mutex unlock
 -> Mutex lock
 <- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
 run 1: foobar and so on fun!
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
 -> Mutex lock
 <- Mutex unlock
 -> Mutex lock
@@ -61,25 +47,7 @@ run 1: foobar and so on fun!
 <- Mutex unlock
 -> Mutex lock
 <- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
-%if hyper
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
-%endif
 run 1: foobar and so on fun!
--> Mutex lock
-<- Mutex unlock
--> Mutex lock
-<- Mutex unlock
 -> Mutex lock
 <- Mutex unlock
 -> Mutex lock
@@ -98,10 +66,10 @@ http
 HTTP with shared connection cache
 </name>
 <tool>
-lib%TESTNUMBER
+lib1554
 </tool>
 <command>
-http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+http://%HOSTIP:%HTTPPORT/1554
 </command>
 </client>
 
