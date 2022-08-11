@@ -1,3 +1,7 @@
+# Copyright (C) 2000 - 2022 Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# SPDX-License-Identifier: curl
+
 *.asc
 *.dll
 *.exe
@@ -14,18 +18,19 @@
 .cproject
 .deps
 .dirstamp
-.kconfig
 .libs
 .project
 .settings
 /.vs
+/bld/
 /build/
 /builds/
+/stats/
 __pycache__
 CHANGES.dist
 Debug
 INSTALL
-Kconfig
+Makefile
 Makefile.in
 Release
 TAGS
@@ -46,8 +51,6 @@ curl-*.zip
 curl-config
 depcomp
 install-sh
-lib/.depend
-lib/Make.dep
 libcurl.pc
 libtool
 ltmain.sh
@@ -57,9 +60,7 @@ tags
 test-driver
 scripts/_curl
 scripts/curl.fish
-src/.depend
-src/Make.dep
 curl_fuzzer
 curl_fuzzer_seed_corpus.zip
 libstandaloneengine.a
-.checksrc
+tests/string

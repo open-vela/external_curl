@@ -1,3 +1,27 @@
+#***************************************************************************
+#                                  _   _ ____  _
+#  Project                     ___| | | |  _ \| |
+#                             / __| | | | |_) | |
+#                            | (__| |_| |  _ <| |___
+#                             \___|\___/|_| \_\_____|
+#
+# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution. The terms
+# are also available at https://curl.se/docs/copyright.html.
+#
+# You may opt to use, copy, modify, merge, publish, distribute and/or sell
+# copies of the Software, and permit persons to whom the Software is
+# furnished to do so, under the terms of the COPYING file.
+#
+# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+# KIND, either express or implied.
+#
+# SPDX-License-Identifier: curl
+#
+###########################################################################
+#
 # This is a list of names we have recorded that already are thanked
 # appropriately in THANKS. This list contains variations of their names and
 # their "canonical" name. This file is used for scripting purposes to avoid
@@ -5,7 +29,7 @@
 # When removing dupes that aren't identical names from THANKS, add a line
 # here!
 #
-# Used-by: contributor.sh
+# Used-by: contributors.sh
 s/Andres Garcia/Andrés García/
 s/Chris Conroy/Christopher Conroy/
 s/Francois Charlier/François Charlier/
@@ -99,3 +123,12 @@ s/Ale Vesely/Alessandro Vesely/
 s/Yamada Yasuharu/Yasuharu Yamada/
 s/Jim Gallagher/James Gallagher/
 s/Steve Brokenshire/Stephen Brokenshire/
+s/wangp on github/Peter Wang/
+s# *autobuild https://.*##
+s/William A Rowe Jr/William A. Rowe Jr/
+s/jonrumsey on github/Jon Rumsey/
+s/Travis Burtrum on github//
+s/i-ky on github/Gleb Ivanovsky/
+s/ *via curl-library *//
+s/Evgeny Grin$/Evgeny Grin (Karlson2k)/
+s/Karlson2k on github/Evgeny Grin (Karlson2k)/
