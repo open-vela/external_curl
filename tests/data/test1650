@@ -14,10 +14,14 @@ none
 </server>
 <features>
 unittest
-DoH
+http/2
 </features>
  <name>
 DOH
  </name>
+<tool>
+unit1650
+</tool>
 </client>
+
 </testcase>
