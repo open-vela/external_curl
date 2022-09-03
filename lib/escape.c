@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2018, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -31,6 +29,7 @@
 
 #include "urldata.h"
 #include "warnless.h"
+#include "non-ascii.h"
 #include "escape.h"
 #include "strdup.h"
 /* The last 3 #include files should be in this order */
@@ -40,7 +39,7 @@
 
 /* Portable character check (remember EBCDIC). Do not use isalnum() because
    its behavior is altered by the current locale.
-   See https://datatracker.ietf.org/doc/html/rfc3986#section-2.3
+   See https://tools.ietf.org/html/rfc3986#section-2.3
 */
 bool Curl_isunreserved(unsigned char in)
 {
@@ -77,74 +76,84 @@ char *curl_unescape(const char *string, int length)
   return curl_easy_unescape(NULL, string, length, NULL);
 }
 
-/* Escapes for URL the given unescaped string of given length.
- * 'data' is ignored since 7.82.0.
- */
 char *curl_easy_escape(struct Curl_easy *data, const char *string,
                        int inlength)
 {
+  size_t alloc;
+  char *ns;
+  char *testing_ptr = NULL;
+  size_t newlen;
+  size_t strindex = 0;
   size_t length;
-  struct dynbuf d;
-  (void)data;
+  CURLcode result;
 
   if(inlength < 0)
     return NULL;
 
-  Curl_dyn_init(&d, CURL_MAX_INPUT_LENGTH * 3);
+  alloc = (inlength?(size_t)inlength:strlen(string)) + 1;
+  newlen = alloc;
 
-  length = (inlength?(size_t)inlength:strlen(string));
-  if(!length)
-    return strdup("");
+  ns = malloc(alloc);
+  if(!ns)
+    return NULL;
 
+  length = alloc-1;
   while(length--) {
     unsigned char in = *string; /* we need to treat the characters unsigned */
 
-    if(Curl_isunreserved(in)) {
-      /* append this */
-      if(Curl_dyn_addn(&d, &in, 1))
-        return NULL;
-    }
+    if(Curl_isunreserved(in))
+      /* just copy this */
+      ns[strindex++] = in;
     else {
       /* encode it */
-      if(Curl_dyn_addf(&d, "%%%02X", in))
+      newlen += 2; /* the size grows with two, since this'll become a %XX */
+      if(newlen > alloc) {
+        alloc *= 2;
+        testing_ptr = Curl_saferealloc(ns, alloc);
+        if(!testing_ptr)
+          return NULL;
+        ns = testing_ptr;
+      }
+
+      result = Curl_convert_to_network(data, (char *)&in, 1);
+      if(result) {
+        /* Curl_convert_to_network calls failf if unsuccessful */
+        free(ns);
         return NULL;
+      }
+
+      msnprintf(&ns[strindex], 4, "%%%02X", in);
+
+      strindex += 3;
     }
     string++;
   }
-
-  return Curl_dyn_ptr(&d);
+  ns[strindex] = 0; /* terminate it */
+  return ns;
 }
 
 /*
  * Curl_urldecode() URL decodes the given string.
  *
+ * Optionally detects control characters (byte codes lower than 32) in the
+ * data and rejects such data.
+ *
  * Returns a pointer to a malloced string in *ostring with length given in
  * *olen. If length == 0, the length is assumed to be strlen(string).
  *
- * ctrl options:
- * - REJECT_NADA: accept everything
- * - REJECT_CTRL: rejects control characters (byte codes lower than 32) in
- *                the data
- * - REJECT_ZERO: rejects decoded zero bytes
- *
- * The values for the enum starts at 2, to make the assert detect legacy
- * invokes that used TRUE/FALSE (0 and 1).
+ * 'data' can be set to NULL but then this function can't convert network
+ * data to host for non-ascii.
  */
-
-CURLcode Curl_urldecode(const char *string, size_t length,
+CURLcode Curl_urldecode(struct Curl_easy *data,
+                        const char *string, size_t length,
                         char **ostring, size_t *olen,
-                        enum urlreject ctrl)
+                        bool reject_ctrl)
 {
-  size_t alloc;
-  char *ns;
+  size_t alloc = (length?length:strlen(string)) + 1;
+  char *ns = malloc(alloc);
   size_t strindex = 0;
   unsigned long hex;
-
-  DEBUGASSERT(string);
-  DEBUGASSERT(ctrl >= REJECT_NADA); /* crash on TRUE/FALSE */
-
-  alloc = (length?length:strlen(string)) + 1;
-  ns = malloc(alloc);
+  CURLcode result = CURLE_OK;
 
   if(!ns)
     return CURLE_OUT_OF_MEMORY;
@@ -164,12 +173,20 @@ CURLcode Curl_urldecode(const char *string, size_t length,
 
       in = curlx_ultouc(hex); /* this long is never bigger than 255 anyway */
 
+      if(data) {
+        result = Curl_convert_from_network(data, (char *)&in, 1);
+        if(result) {
+          /* Curl_convert_from_network calls failf if unsuccessful */
+          free(ns);
+          return result;
+        }
+      }
+
       string += 2;
       alloc -= 2;
     }
 
-    if(((ctrl == REJECT_CTRL) && (in < 0x20)) ||
-       ((ctrl == REJECT_ZERO) && (in == 0))) {
+    if(reject_ctrl && (in < 0x20)) {
       free(ns);
       return CURLE_URL_MALFORMAT;
     }
@@ -194,18 +211,16 @@ CURLcode Curl_urldecode(const char *string, size_t length,
  * pointer to a malloced string with length given in *olen.
  * If length == 0, the length is assumed to be strlen(string).
  * If olen == NULL, no output length is stored.
- * 'data' is ignored since 7.82.0.
  */
 char *curl_easy_unescape(struct Curl_easy *data, const char *string,
                          int length, int *olen)
 {
   char *str = NULL;
-  (void)data;
   if(length >= 0) {
     size_t inputlen = length;
     size_t outputlen;
-    CURLcode res = Curl_urldecode(string, inputlen, &str, &outputlen,
-                                  REJECT_NADA);
+    CURLcode res = Curl_urldecode(data, string, inputlen, &str, &outputlen,
+                                  FALSE);
     if(res)
       return NULL;
 

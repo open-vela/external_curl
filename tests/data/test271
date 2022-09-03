@@ -27,7 +27,7 @@ tftp
 TFTP retrieve
  </name>
  <command>
-tftp://%HOSTIP:%TFTPPORT//%TESTNUMBER
+tftp://%HOSTIP:%TFTPPORT//271
 </command>
 </client>
 
@@ -35,12 +35,12 @@ tftp://%HOSTIP:%TFTPPORT//%TESTNUMBER
 # Verify pseudo protocol after the test has been "shot"
 <verify>
 <protocol>
-opcode = 1
-mode = octet
-tsize = 0
-blksize = 512
-timeout = 6
-filename = /%TESTNUMBER
+opcode: 1
+mode: octet
+tsize: 0
+blksize: 512
+timeout: 6
+filename: /271
 </protocol>
 </verify>
 </testcase>
