@@ -5,11 +5,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2019, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at https://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -17,6 +17,8 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 #include "tool_setup.h"
@@ -51,7 +53,7 @@ static char *max5data(curl_off_t bytes, char *max5)
               CURL_FORMAT_CURL_OFF_T "M", bytes/ONE_MEGABYTE,
               (bytes%ONE_MEGABYTE) / (ONE_MEGABYTE/CURL_OFF_T_C(10)) );
 
-#if (CURL_SIZEOF_CURL_OFF_T > 4)
+#if (SIZEOF_CURL_OFF_T > 4)
 
   else if(bytes < CURL_OFF_T_C(10000) * ONE_MEGABYTE)
     /* 'XXXXM' is good until we're at 10000MB or above */
@@ -95,10 +97,20 @@ int xferinfo_cb(void *clientp,
                 curl_off_t ulnow)
 {
   struct per_transfer *per = clientp;
+  struct OperationConfig *config = per->config;
   per->dltotal = dltotal;
   per->dlnow = dlnow;
   per->ultotal = ultotal;
   per->ulnow = ulnow;
+
+  if(per->abort)
+    return 1;
+
+  if(config->readbusy) {
+    config->readbusy = FALSE;
+    curl_easy_pause(per->curl, CURLPAUSE_CONT);
+  }
+
   return 0;
 }
 
@@ -149,8 +161,8 @@ static bool indexwrapped;
 static struct speedcount speedstore[SPEEDCNT];
 
 /*
-  |DL% UL%  Dled  Uled  Xfers  Live   Qd Total     Current  Left    Speed
-  |  6 --   9.9G     0     2     2     0  0:00:40  0:00:02  0:00:37 4087M
+  |DL% UL%  Dled  Uled  Xfers  Live Total     Current  Left    Speed
+  |  6 --   9.9G     0     2     2   0:00:40  0:00:02  0:00:37 4087M
 */
 bool progress_meter(struct GlobalConfig *global,
                     struct timeval *start,
@@ -169,7 +181,7 @@ bool progress_meter(struct GlobalConfig *global,
 
   if(!header) {
     header = TRUE;
-    fputs("DL% UL%  Dled  Uled  Xfers  Live   Qd "
+    fputs("DL% UL%  Dled  Uled  Xfers  Live "
           "Total     Current  Left    Speed\n",
           global->errors);
   }
@@ -187,7 +199,6 @@ bool progress_meter(struct GlobalConfig *global,
     bool dlknown = TRUE;
     bool ulknown = TRUE;
     curl_off_t all_running = 0; /* in progress */
-    curl_off_t all_queued = 0;  /* pending */
     curl_off_t speed = 0;
     unsigned int i;
     stamp = now;
@@ -213,18 +224,16 @@ bool progress_meter(struct GlobalConfig *global,
         all_ultotal += per->ultotal;
         per->ultotal_added = TRUE;
       }
-      if(!per->added)
-        all_queued++;
-      else
+      if(per->added)
         all_running++;
     }
     if(dlknown && all_dltotal)
       /* TODO: handle integer overflow */
-      msnprintf(dlpercen, sizeof(dlpercen), "%3d",
+      msnprintf(dlpercen, sizeof(dlpercen), "%3" CURL_FORMAT_CURL_OFF_T,
                 all_dlnow * 100 / all_dltotal);
     if(ulknown && all_ultotal)
       /* TODO: handle integer overflow */
-      msnprintf(ulpercen, sizeof(ulpercen), "%3d",
+      msnprintf(ulpercen, sizeof(ulpercen), "%3" CURL_FORMAT_CURL_OFF_T,
                 all_ulnow * 100 / all_ultotal);
 
     /* get the transfer speed, the higher of the two */
@@ -256,6 +265,8 @@ bool progress_meter(struct GlobalConfig *global,
         dl = all_dlnow;
         ul = all_ulnow;
       }
+      if(!deltams) /* no division by zero please */
+        deltams++;
       dls = (curl_off_t)((double)dl / ((double)deltams/1000.0));
       uls = (curl_off_t)((double)ul / ((double)deltams/1000.0));
       speed = dls > uls ? dls : uls;
@@ -282,8 +293,7 @@ bool progress_meter(struct GlobalConfig *global,
             "%s " /* Uled */
             "%5" CURL_FORMAT_CURL_OFF_T " " /* Xfers */
             "%5" CURL_FORMAT_CURL_OFF_T " " /* Live */
-            "%5" CURL_FORMAT_CURL_OFF_T " " /* Queued */
-            "%s "  /* Total time */
+            " %s "  /* Total time */
             "%s "  /* Current time */
             "%s "  /* Time left */
             "%s "  /* Speed */
@@ -295,7 +305,6 @@ bool progress_meter(struct GlobalConfig *global,
             max5data(all_ulnow, buffer[1]),
             all_xfers,
             all_running,
-            all_queued,
             time_total,
             time_spent,
             time_left,
@@ -311,4 +320,12 @@ void progress_finalize(struct per_transfer *per)
   /* get the numbers before this transfer goes away */
   all_dlalready += per->dlnow;
   all_ulalready += per->ulnow;
+  if(!per->dltotal_added) {
+    all_dltotal += per->dltotal;
+    per->dltotal_added = TRUE;
+  }
+  if(!per->ultotal_added) {
+    all_ultotal += per->ultotal;
+    per->ultotal_added = TRUE;
+  }
 }
