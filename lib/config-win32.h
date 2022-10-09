@@ -254,11 +254,6 @@
 /* Define to the function return type for send. */
 #define SEND_TYPE_RETV int
 
-/* Define to 1 if you have the snprintf function. */
-#if defined(_MSC_VER) && (_MSC_VER >= 1900)
-#define HAVE_SNPRINTF 1
-#endif
-
 /* ---------------------------------------------------------------- */
 /*                       TYPEDEF REPLACEMENTS                       */
 /* ---------------------------------------------------------------- */
@@ -565,7 +560,7 @@ Vista
 /*                           LDAP SUPPORT                           */
 /* ---------------------------------------------------------------- */
 
-#if defined(CURL_HAS_NOVELL_LDAPSDK)
+#if defined(CURL_HAS_NOVELL_LDAPSDK) || defined(CURL_HAS_MOZILLA_LDAPSDK)
 #undef USE_WIN32_LDAP
 #define HAVE_LDAP_SSL_H 1
 #define HAVE_LDAP_URL_PARSE 1

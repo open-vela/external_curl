@@ -6286,7 +6286,7 @@ if($total) {
     logmsg sprintf("TESTDONE: $ok tests out of $total reported OK: %d%%\n",
                    $ok/$total*100);
 
-    if($failed && ($ok != $total)) {
+    if($ok != $total) {
         logmsg "\nTESTFAIL: These test cases failed: $failed\n\n";
     }
 }

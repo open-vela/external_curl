@@ -253,7 +253,7 @@ development and experimenting.
 ## Prerequisite(s)
 
 An existing local HTTP/1.1 server that hosts files. Preferably also a few huge
-ones. You can easily create huge local files like `truncate -s=8G 8GB` - they
+ones.  You can easily create huge local files like `truncate -s=8G 8GB` - they
 are huge but do not occupy that much space on disk since they are just big
 holes.
 
@@ -291,21 +291,26 @@ that exists in curl's test dir.
 
 ### Caddy
 
-[Install Caddy](https://caddyserver.com/docs/install). For easiest use, the binary
-should be either in your PATH or your current directory.
+[Install caddy](https://caddyserver.com/docs/install), you can even put the
+single binary in a separate directory if you prefer.
 
-Create a `Caddyfile` with the following content:
+In the same directory you put caddy, create a `Caddyfile` with the following
+content to run an HTTP/3 reverse-proxy on port 7443:
 ~~~
+{
+    auto_https disable_redirects
+	servers :7443 {
+		protocol {
+			experimental_http3
+		}
+	}
+}
+
 localhost:7443 {
-	respond "Hello, world! You're using {http.request.proto}"
+	reverse_proxy localhost:80
 }
 ~~~
 
-Then run Caddy:
+Then run caddy:
 
     ./caddy start
-
-Making requests to `https://localhost:7443` should tell you which protocol is being used.
-
-You can change the hard-coded response to something more useful by replacing `respond`
-with `reverse_proxy` or `file_server`, for example: `reverse_proxy localhost:80`

@@ -26,11 +26,6 @@
  * </DESC>
  */
 
-/*
- * Warning: this example uses the deprecated form api. See "multi-post.c"
- *          for a similar example using the mime api.
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
@@ -54,14 +49,14 @@ int main(void)
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "sendfile",
-               CURLFORM_FILE, "multi-formadd.c",
+               CURLFORM_FILE, "postit2.c",
                CURLFORM_END);
 
   /* Fill in the filename field */
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "filename",
-               CURLFORM_COPYCONTENTS, "multi-formadd.c",
+               CURLFORM_COPYCONTENTS, "postit2.c",
                CURLFORM_END);
 
   /* Fill in the submit field too, even if this is rarely needed */
