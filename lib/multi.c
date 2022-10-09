@@ -417,7 +417,6 @@ struct Curl_multi *Curl_multi_handle(int hashsize, /* socket hash */
   /* -1 means it not set by user, use the default value */
   multi->maxconnects = -1;
   multi->max_concurrent_streams = 100;
-  multi->ipv6_works = Curl_ipv6works(NULL);
 
 #ifdef USE_WINSOCK
   multi->wsa_event = WSACreateEvent();
@@ -3336,7 +3335,7 @@ static CURLMcode multi_timeout(struct Curl_multi *multi,
     /* splay the lowest to the bottom */
     multi->timetree = Curl_splay(tv_zero, multi->timetree);
 
-    if(Curl_splaycomparekeys(multi->timetree->key, now) >= 0) {
+    if(Curl_splaycomparekeys(multi->timetree->key, now) > 0) {
       /* some time left before expiration */
       timediff_t diff = Curl_timediff(multi->timetree->key, now);
       if(diff <= 0)

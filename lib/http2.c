@@ -391,10 +391,8 @@ static ssize_t send_callback(nghttp2_session *h2,
     /* called before setup properly! */
     return NGHTTP2_ERR_CALLBACK_FAILURE;
 
-  curlx_nonblock(conn->sock[0], FALSE);
   written = ((Curl_send*)c->send_underlying)(data, FIRSTSOCKET,
                                              mem, length, &result);
-  curlx_nonblock(conn->sock[0], TRUE);
 
   if(result == CURLE_AGAIN) {
     return NGHTTP2_ERR_WOULDBLOCK;

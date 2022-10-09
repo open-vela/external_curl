@@ -746,7 +746,7 @@ static void addrinfo_cb(void *arg, int status, int timeouts,
  * Curl_resolver_getaddrinfo() - when using ares
  *
  * Returns name information about the given hostname and port number. If
- * successful, the 'hostent' is returned and the forth argument will point to
+ * successful, the 'hostent' is returned and the fourth argument will point to
  * memory we need to free after use. That memory *MUST* be freed with
  * Curl_freeaddrinfo(), nothing else.
  */
@@ -779,7 +779,7 @@ struct Curl_addrinfo *Curl_resolver_getaddrinfo(struct Curl_easy *data,
       int pf = PF_INET;
       memset(&hints, 0, sizeof(hints));
 #ifdef CURLRES_IPV6
-      if(Curl_ipv6works(data))
+      if((data->conn->ip_version != CURL_IPRESOLVE_V4) && Curl_ipv6works(data))
         /* The stack seems to be IPv6-enabled */
         pf = PF_UNSPEC;
 #endif /* CURLRES_IPV6 */
@@ -794,7 +794,7 @@ struct Curl_addrinfo *Curl_resolver_getaddrinfo(struct Curl_easy *data,
 #else
 
 #ifdef HAVE_CARES_IPV6
-    if(Curl_ipv6works(data)) {
+    if((data->conn->ip_version != CURL_IPRESOLVE_V4) && Curl_ipv6works(data)) {
       /* The stack seems to be IPv6-enabled */
       res->num_pending = 2;
 
