@@ -25,13 +25,8 @@
  * HTTP Multipart formpost with file upload and two additional parts.
  * </DESC>
  */
-
-/*
- * Example code that uploads a file name 'foo' to a remote script that accepts
+/* Example code that uploads a file name 'foo' to a remote script that accepts
  * "HTML form based" (as described in RFC1738) uploads using HTTP POST.
- *
- * Warning: this example uses the deprecated form api. See "postit2.c"
- *          for a similar example using the mime api.
  *
  * The imaginary form we will fill in looks like:
  *
@@ -40,6 +35,7 @@
  * Enter file name: <input type="text" name="filename" size="30">
  * <input type="submit" value="send" name="submit">
  * </form>
+ *
  */
 
 #include <stdio.h>
@@ -63,14 +59,14 @@ int main(int argc, char *argv[])
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "sendfile",
-               CURLFORM_FILE, "postit2-formadd.c",
+               CURLFORM_FILE, "postit2.c",
                CURLFORM_END);
 
   /* Fill in the filename field */
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "filename",
-               CURLFORM_COPYCONTENTS, "postit2-formadd.c",
+               CURLFORM_COPYCONTENTS, "postit2.c",
                CURLFORM_END);
 
 

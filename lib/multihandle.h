@@ -150,13 +150,11 @@ struct Curl_multi {
                                    0 is used for read, 1 is used for write */
 #endif
 #endif
-#define IPV6_UNKNOWN 0
-#define IPV6_DEAD    1
-#define IPV6_WORKS   2
-  unsigned char ipv6_up;       /* IPV6_* defined */
-  bool multiplexing;           /* multiplexing wanted */
-  bool recheckstate;           /* see Curl_multi_connchanged */
+  /* multiplexing wanted */
+  bool multiplexing;
+  bool recheckstate; /* see Curl_multi_connchanged */
   bool in_callback;            /* true while executing a callback */
+  bool ipv6_works;
 #ifdef USE_OPENSSL
   bool ssl_seeded;
 #endif
