@@ -40,7 +40,7 @@
 #include <qadrt.h>
 #include <errno.h>
 
-#ifdef HAVE_LIBZ
+#ifdef HAVE_ZLIB_H
 #include <zlib.h>
 #endif
 

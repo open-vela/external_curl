@@ -5,6 +5,8 @@
 name: Linux
 
 on:
+  # Trigger the workflow on push or pull requests, but only for the
+  # master branch
   push:
     branches:
     - master
@@ -12,11 +14,6 @@ on:
   pull_request:
     branches:
     - master
-
-concurrency:
-  # Hardcoded workflow filename as workflow name above is just Linux again
-  group: torture-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
 
 jobs:
   autotools:
@@ -54,10 +51,7 @@ jobs:
     - run: make V=1
       name: 'make'
 
-    - run: make V=1 -C tests
-      name: 'make tests'
-
     - run: make V=1 test-torture
-      name: 'run tests'
+      name: 'test'
       env:
         TFLAGS: "${{ matrix.build.tflags }}"

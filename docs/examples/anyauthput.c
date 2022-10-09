@@ -34,9 +34,11 @@
 #include <curl/curl.h>
 
 #ifdef WIN32
-#  define FILENO(fp) _fileno(fp)
+#  include <io.h>
+#  define READ_3RD_ARG unsigned int
 #else
-#  define FILENO(fp) fileno(fp)
+#  include <unistd.h>
+#  define READ_3RD_ARG size_t
 #endif
 
 #if LIBCURL_VERSION_NUM < 0x070c03
@@ -48,22 +50,33 @@
  * type. It PUTs a file given as a command line argument to the URL also given
  * on the command line.
  *
- * Since libcurl 7.12.3, using "any" auth and POST/PUT requires a set seek
+ * Since libcurl 7.12.3, using "any" auth and POST/PUT requires a set ioctl
  * function.
  *
  * This example also uses its own read callback.
  */
 
-/* seek callback function */
-static int my_seek(void *userp, curl_off_t offset, int origin)
+/* ioctl callback function */
+static curlioerr my_ioctl(CURL *handle, curliocmd cmd, void *userp)
 {
-  FILE *fp = (FILE *) userp;
+  int *fdp = (int *)userp;
+  int fd = *fdp;
 
-  if(-1 == fseek(fp, (long) offset, origin))
-    /* couldn't seek */
-    return CURL_SEEKFUNC_CANTSEEK;
+  (void)handle; /* not used in here */
 
-  return CURL_SEEKFUNC_OK; /* success! */
+  switch(cmd) {
+  case CURLIOCMD_RESTARTREAD:
+    /* mr libcurl kindly asks as to rewind the read data stream to start */
+    if(-1 == lseek(fd, 0, SEEK_SET))
+      /* couldn't rewind */
+      return CURLIOE_FAILRESTART;
+
+    break;
+
+  default: /* ignore unknown commands */
+    return CURLIOE_UNKNOWNCMD;
+  }
+  return CURLIOE_OK; /* success! */
 }
 
 /* read callback function, fread() look alike */
@@ -72,7 +85,10 @@ static size_t read_callback(char *ptr, size_t size, size_t nmemb, void *stream)
   ssize_t retcode;
   unsigned long nread;
 
-  retcode = fread(ptr, size, nmemb, stream);
+  int *fdp = (int *)stream;
+  int fd = *fdp;
+
+  retcode = read(fd, ptr, (READ_3RD_ARG)(size * nmemb));
 
   if(retcode > 0) {
     nread = (unsigned long)retcode;
@@ -86,7 +102,7 @@ int main(int argc, char **argv)
 {
   CURL *curl;
   CURLcode res;
-  FILE *fp;
+  int hd;
   struct stat file_info;
 
   char *file;
@@ -99,8 +115,8 @@ int main(int argc, char **argv)
   url = argv[2];
 
   /* get the file size of the local file */
-  fp = fopen(file, "rb");
-  fstat(FILENO(fp), &file_info);
+  hd = open(file, O_RDONLY);
+  fstat(hd, &file_info);
 
   /* In windows, this will init the winsock stuff */
   curl_global_init(CURL_GLOBAL_ALL);
@@ -112,13 +128,13 @@ int main(int argc, char **argv)
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
 
     /* which file to upload */
-    curl_easy_setopt(curl, CURLOPT_READDATA, (void *) fp);
+    curl_easy_setopt(curl, CURLOPT_READDATA, (void *)&hd);
 
-    /* set the seek function */
-    curl_easy_setopt(curl, CURLOPT_SEEKFUNCTION, my_seek);
+    /* set the ioctl function */
+    curl_easy_setopt(curl, CURLOPT_IOCTLFUNCTION, my_ioctl);
 
-    /* pass the file descriptor to the seek callback as well */
-    curl_easy_setopt(curl, CURLOPT_SEEKDATA, (void *) fp);
+    /* pass the file descriptor to the ioctl callback as well */
+    curl_easy_setopt(curl, CURLOPT_IOCTLDATA, (void *)&hd);
 
     /* enable "uploading" (which means PUT when doing HTTP) */
     curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
@@ -150,7 +166,7 @@ int main(int argc, char **argv)
     /* always cleanup */
     curl_easy_cleanup(curl);
   }
-  fclose(fp); /* close the local file */
+  close(hd); /* close the local file */
 
   curl_global_cleanup();
   return 0;

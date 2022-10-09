@@ -91,8 +91,7 @@ EXTRA_DIST =                                    \
  TODO                                           \
  TheArtOfHttpScripting.md                       \
  URL-SYNTAX.md                                  \
- VERSIONS.md                                    \
- WEBSOCKET.md
+ VERSIONS.md
 
 MAN2HTML= roffit $< >$@
 

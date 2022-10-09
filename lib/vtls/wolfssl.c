@@ -811,10 +811,8 @@ wolfssl_connect_step3(struct Curl_easy *data, struct connectdata *conn,
 
   if(SSL_SET_OPTION(primary.sessionid)) {
     bool incache;
-    bool added = FALSE;
     void *old_ssl_sessionid = NULL;
-    /* SSL_get1_session allocates memory that has to be freed. */
-    SSL_SESSION *our_ssl_sessionid = SSL_get1_session(backend->handle);
+    SSL_SESSION *our_ssl_sessionid = SSL_get_session(backend->handle);
     bool isproxy = SSL_IS_PROXY() ? TRUE : FALSE;
 
     if(our_ssl_sessionid) {
@@ -834,20 +832,11 @@ wolfssl_connect_step3(struct Curl_easy *data, struct connectdata *conn,
                                        0, sockindex, NULL);
         if(result) {
           Curl_ssl_sessionid_unlock(data);
-          SSL_SESSION_free(our_ssl_sessionid);
           failf(data, "failed to store ssl session");
           return result;
         }
-        else {
-          added = TRUE;
-        }
       }
       Curl_ssl_sessionid_unlock(data);
-
-      if(!added) {
-        /* If the session info wasn't added to the cache, free our copy. */
-        SSL_SESSION_free(our_ssl_sessionid);
-      }
     }
   }
 
@@ -967,7 +956,8 @@ static ssize_t wolfssl_recv(struct Curl_easy *data,
 
 static void wolfssl_session_free(void *ptr)
 {
-  SSL_SESSION_free(ptr);
+  (void)ptr;
+  /* wolfSSL reuses sessions on own, no free */
 }
 
 

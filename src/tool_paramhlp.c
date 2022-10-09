@@ -34,8 +34,6 @@
 #include "tool_getpass.h"
 #include "tool_msgs.h"
 #include "tool_paramhlp.h"
-#include "tool_libinfo.h"
-#include "tool_util.h"
 #include "tool_version.h"
 #include "dynbuf.h"
 
@@ -262,53 +260,6 @@ ParameterError str2udouble(double *valp, const char *str, long max)
 }
 
 /*
- * Implement protocol sets in null-terminated array of protocol name pointers.
- */
-
-/* Return index of prototype token in set, card(set) if not found.
-   Can be called with proto == NULL to get card(set). */
-static size_t protoset_index(const char * const *protoset, const char *proto)
-{
-  const char * const *p = protoset;
-
-  DEBUGASSERT(proto == proto_token(proto));     /* Ensure it is tokenized. */
-
-  for(; *p; p++)
-    if(proto == *p)
-      break;
-  return p - protoset;
-}
-
-/* Include protocol token in set. */
-static void protoset_set(const char **protoset, const char *proto)
-{
-  if(proto) {
-    size_t n = protoset_index(protoset, proto);
-
-    if(!protoset[n]) {
-      DEBUGASSERT(n < proto_count);
-      protoset[n] = proto;
-      protoset[n + 1] = NULL;
-    }
-  }
-}
-
-/* Exclude protocol token from set. */
-static void protoset_clear(const char **protoset, const char *proto)
-{
-  if(proto) {
-    size_t n = protoset_index(protoset, proto);
-
-    if(protoset[n]) {
-      size_t m = protoset_index(protoset, NULL) - 1;
-
-      protoset[n] = protoset[m];
-      protoset[m] = NULL;
-    }
-  }
-}
-
-/*
  * Parse the string and provide an allocated libcurl compatible protocol
  * string output. Return non-zero on failure, zero on success.
  *
@@ -319,20 +270,48 @@ static void protoset_clear(const char **protoset, const char *proto)
  * data.
  */
 
-#define MAX_PROTOSTRING (64*11) /* Enough room for 64 10-chars proto names. */
-
 ParameterError proto2num(struct OperationConfig *config,
-                         const char * const *val, char **ostr, const char *str)
+                         unsigned int val, char **ostr, const char *str)
 {
   char *buffer;
   const char *sep = ",";
   char *token;
-  const char **protoset;
-  struct curlx_dynbuf obuf;
-  size_t proto;
-  CURLcode result;
+  char obuf[256] = "";
+  size_t olen = sizeof(obuf);
+  char *optr;
+  struct sprotos const *pp;
 
-  curlx_dyn_init(&obuf, MAX_PROTOSTRING);
+  static struct sprotos {
+    const char *name;
+    unsigned int bit;
+  } const protos[] = {
+    { "all", (unsigned int)CURLPROTO_ALL },
+    { "http", CURLPROTO_HTTP },
+    { "https", CURLPROTO_HTTPS },
+    { "ftp", CURLPROTO_FTP },
+    { "ftps", CURLPROTO_FTPS },
+    { "scp", CURLPROTO_SCP },
+    { "sftp", CURLPROTO_SFTP },
+    { "telnet", CURLPROTO_TELNET },
+    { "ldap", CURLPROTO_LDAP },
+    { "ldaps", CURLPROTO_LDAPS },
+    { "mqtt", CURLPROTO_MQTT },
+    { "dict", CURLPROTO_DICT },
+    { "file", CURLPROTO_FILE },
+    { "tftp", CURLPROTO_TFTP },
+    { "imap", CURLPROTO_IMAP },
+    { "imaps", CURLPROTO_IMAPS },
+    { "pop3", CURLPROTO_POP3 },
+    { "pop3s", CURLPROTO_POP3S },
+    { "smtp", CURLPROTO_SMTP },
+    { "smtps", CURLPROTO_SMTPS },
+    { "rtsp", CURLPROTO_RTSP },
+    { "gopher", CURLPROTO_GOPHER },
+    { "gophers", CURLPROTO_GOPHERS },
+    { "smb", CURLPROTO_SMB },
+    { "smbs", CURLPROTO_SMBS },
+    { NULL, 0 }
+  };
 
   if(!str)
     return PARAM_OPTION_AMBIGUOUS;
@@ -340,21 +319,6 @@ ParameterError proto2num(struct OperationConfig *config,
   buffer = strdup(str); /* because strtok corrupts it */
   if(!buffer)
     return PARAM_NO_MEM;
-
-  protoset = malloc((proto_count + 1) * sizeof(*protoset));
-  if(!protoset) {
-    free(buffer);
-    return PARAM_NO_MEM;
-  }
-
-  /* Preset protocol set with default values. */
-  protoset[0] = NULL;
-  for(; *val; val++) {
-    const char *p = proto_token(*val);
-
-    if(p)
-      protoset_set(protoset, p);
-  }
 
   /* Allow strtok() here since this isn't used threaded */
   /* !checksrc! disable BANNEDFUNC 2 */
@@ -376,60 +340,49 @@ ParameterError proto2num(struct OperationConfig *config,
         action = allow;
         break;
       default: /* Includes case of terminating NULL */
-        free(buffer);
-        free((char *) protoset);
+        Curl_safefree(buffer);
         return PARAM_BAD_USE;
       }
     }
 
-    if(curl_strequal(token, "all")) {
-      switch(action) {
-      case deny:
-        protoset[0] = NULL;
-        break;
-      case allow:
-      case set:
-        memcpy((char *) protoset,
-               built_in_protos, (proto_count + 1) * sizeof(*protoset));
-        break;
-      }
-    }
-    else {
-      const char *p = proto_token(token);
-
-      if(p)
+    for(pp = protos; pp->name; pp++) {
+      if(curl_strequal(token, pp->name)) {
         switch(action) {
         case deny:
-          protoset_clear(protoset, p);
+          val &= ~(pp->bit);
+          break;
+        case allow:
+          val |= pp->bit;
           break;
         case set:
-          protoset[0] = NULL;
-          /* FALLTHROUGH */
-        case allow:
-          protoset_set(protoset, p);
+          val = pp->bit;
           break;
         }
-      else { /* unknown protocol */
-        /* If they have specified only this protocol, we say treat it as
-           if no protocols are allowed */
-        if(action == set)
-          protoset[0] = NULL;
-        warnf(config->global, "unrecognized protocol '%s'\n", token);
+        break;
       }
     }
+
+    if(!(pp->name)) { /* unknown protocol */
+      /* If they have specified only this protocol, we say treat it as
+         if no protocols are allowed */
+      if(action == set)
+        val = 0;
+      warnf(config->global, "unrecognized protocol '%s'\n", token);
+    }
   }
-  free(buffer);
+  Curl_safefree(buffer);
 
-  /* We need the protocols in alphabetic order for CI tests requirements. */
-  qsort((char *) protoset, protoset_index(protoset, NULL), sizeof(*protoset),
-        struplocompare4sort);
-
-  result = curlx_dyn_addn(&obuf, "", 0);
-  for(proto = 0; protoset[proto] && !result; proto++)
-    result = curlx_dyn_addf(&obuf, "%s,", protoset[proto]);
-  free((char *) protoset);
-  curlx_dyn_setlen(&obuf, curlx_dyn_len(&obuf) - 1);
-  *ostr = curlx_dyn_ptr(&obuf);
+  optr = obuf;
+  for(pp = &protos[1]; pp->name; pp++) {
+    if(val & pp->bit) {
+      size_t n = msnprintf(optr, olen, "%s%s",
+                           olen != sizeof(obuf) ? "," : "",
+                           pp->name);
+      olen -= n;
+      optr += n;
+    }
+  }
+  *ostr = strdup(obuf);
 
   return *ostr ? PARAM_OK : PARAM_NO_MEM;
 }
@@ -444,11 +397,14 @@ ParameterError proto2num(struct OperationConfig *config,
  */
 ParameterError check_protocol(const char *str)
 {
+  const char * const *pp;
+  const curl_version_info_data *curlinfo = curl_version_info(CURLVERSION_NOW);
   if(!str)
     return PARAM_REQUIRES_PARAMETER;
-
-  if(proto_token(str))
-    return PARAM_OK;
+  for(pp = curlinfo->protocols; *pp; pp++) {
+    if(curl_strequal(*pp, str))
+      return PARAM_OK;
+  }
   return PARAM_LIBCURL_UNSUPPORTED_PROTOCOL;
 }
 

@@ -5,6 +5,8 @@
 name: ngtcp2
 
 on:
+  # Trigger the workflow on push or pull requests, but only for the
+  # master branch
   push:
     branches:
     - master
@@ -12,11 +14,6 @@ on:
   pull_request:
     branches:
     - master
-
-concurrency:
-  # Hardcoded workflow filename as workflow name above is just Linux again
-  group: ngtcp2-gnutls-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
 
 jobs:
   autotools:
@@ -44,7 +41,7 @@ jobs:
         cd nettle
         ./.bootstrap
         ./configure LDFLAGS="-Wl,-rpath,$HOME/all/lib" ${{ matrix.build.nettle-configure }} --prefix=$HOME/all --libdir=$HOME/all/lib --disable-documentation
-        make install
+        make && make install
       name: 'install nettle'
 
     - run: |
@@ -52,7 +49,7 @@ jobs:
         cd gnutls
         ./bootstrap
         ./configure PKG_CONFIG_PATH="$HOME/all/lib/pkgconfig" LDFLAGS="-Wl,-rpath,$HOME/all/lib -L$HOME/all/lib" --prefix=$HOME/all ${{ matrix.build.gnutls-configure }} --disable-tools
-        make install
+        make V=1 && make install
       name: 'install gnutls'
 
     - run: |
@@ -60,7 +57,7 @@ jobs:
         cd nghttp3
         autoreconf -fi
         ./configure --prefix=$HOME/all --enable-lib-only
-        make install
+        make && make install
       name: 'install nghttp3'
 
     - run: |
@@ -68,7 +65,7 @@ jobs:
         cd ngtcp2
         autoreconf -fi
         ./configure PKG_CONFIG_PATH=$HOME/all/lib/pkgconfig LDFLAGS="-Wl,-rpath,$HOME/all/lib" --prefix=$HOME/all --enable-lib-only --with-gnutls=$HOME/all
-        make install
+        make && make install
       name: 'install ngtcp2'
 
     - uses: actions/checkout@v3
@@ -85,10 +82,7 @@ jobs:
     - run: make V=1 examples
       name: 'make examples'
 
-    - run: make V=1 -C tests
-      name: 'make tests'
-
     - run: make V=1 test-ci
-      name: 'run tests'
+      name: 'test'
       env:
         TFLAGS: "${{ matrix.build.tflags }}"

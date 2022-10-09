@@ -63,7 +63,7 @@ fi
    git -C ../curl-www log --pretty=full --use-mailmap $start..HEAD
   fi
  ) | \
-grep -Eai '(^Author|^Commit|by):' | \
+egrep -ai '(^Author|^Commit|by):' | \
 cut -d: -f2- | \
 cut '-d(' -f1 | \
 cut '-d<' -f1 | \

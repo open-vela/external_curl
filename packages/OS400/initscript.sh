@@ -237,11 +237,11 @@ make_module()
         DEFINES="${3} BUILDING_LIBCURL"
 
         if [ "${WITH_ZLIB}" != "0" ]
-        then    DEFINES="${DEFINES} HAVE_LIBZ"
+        then    DEFINES="${DEFINES} HAVE_LIBZ HAVE_ZLIB_H"
         fi
 
         if [ "${WITH_LIBSSH2}" != "0" ]
-        then    DEFINES="${DEFINES} USE_LIBSSH2"
+        then    DEFINES="${DEFINES} USE_LIBSSH2 HAVE_LIBSSH2_H"
         fi
 
         if [ "${DEFINES}" ]

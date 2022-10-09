@@ -31,7 +31,6 @@
  */
 
 #include <curl/curl.h>
-#include "functypes.h"
 
 #if defined(__GNUC__) && __GNUC__ >= 3
 #  define ALLOC_FUNC __attribute__((malloc))

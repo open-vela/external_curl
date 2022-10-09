@@ -73,8 +73,8 @@
 #endif
 
 #elif defined(USE_WIN32_IDN)
-/* prototype for Curl_win32_idn_to_ascii() */
-bool Curl_win32_idn_to_ascii(const char *in, char **out);
+/* prototype for curl_win32_idn_to_ascii() */
+bool curl_win32_idn_to_ascii(const char *in, char **out);
 #endif  /* USE_LIBIDN2 */
 
 #include "doh.h"
@@ -167,7 +167,7 @@ static void conn_free(struct connectdata *conn);
 *
 * Returns the family as a single bit protocol identifier.
 */
-static curl_prot_t get_protocol_family(const struct Curl_handler *h)
+static unsigned int get_protocol_family(const struct Curl_handler *h)
 {
   DEBUGASSERT(h);
   DEBUGASSERT(h->family);
@@ -577,7 +577,11 @@ CURLcode Curl_init_userdefined(struct Curl_easy *data)
 
   set->new_file_perms = 0644;    /* Default permissions */
   set->new_directory_perms = 0755; /* Default permissions */
-  set->allowed_protocols = (curl_prot_t) CURLPROTO_ALL;
+
+  /* for the *protocols fields we don't use the CURLPROTO_ALL convenience
+     define since we internally only use the lower 16 bits for the passed
+     in bitmask to not conflict with the private bits */
+  set->allowed_protocols = (unsigned int)CURLPROTO_ALL;
   set->redir_protocols = CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FTP |
                          CURLPROTO_FTPS;
 
@@ -957,11 +961,21 @@ socks_proxy_info_matches(const struct proxy_info *data,
   /* the user information is case-sensitive
      or at least it is not defined as case-insensitive
      see https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.1 */
-
+  if(!data->user != !needle->user)
+    return FALSE;
   /* curl_strequal does a case insensitive comparison,
      so do not use it here! */
-  if(Curl_timestrcmp(data->user, needle->user) ||
-     Curl_timestrcmp(data->passwd, needle->passwd))
+  if(data->user &&
+     needle->user &&
+     strcmp(data->user, needle->user) != 0)
+    return FALSE;
+  if(!data->passwd != !needle->passwd)
+    return FALSE;
+  /* curl_strequal does a case insensitive comparison,
+     so do not use it here! */
+  if(data->passwd &&
+     needle->passwd &&
+     strcmp(data->passwd, needle->passwd) != 0)
     return FALSE;
   return TRUE;
 }
@@ -1363,10 +1377,10 @@ ConnectionExists(struct Curl_easy *data,
       if(!(needle->handler->flags & PROTOPT_CREDSPERREQUEST)) {
         /* This protocol requires credentials per connection,
            so verify that we're using the same name and password as well */
-        if(Curl_timestrcmp(needle->user, check->user) ||
-           Curl_timestrcmp(needle->passwd, check->passwd) ||
-           Curl_timestrcmp(needle->sasl_authzid, check->sasl_authzid) ||
-           Curl_timestrcmp(needle->oauth_bearer, check->oauth_bearer)) {
+        if(strcmp(needle->user, check->user) ||
+           strcmp(needle->passwd, check->passwd) ||
+           !Curl_safecmp(needle->sasl_authzid, check->sasl_authzid) ||
+           !Curl_safecmp(needle->oauth_bearer, check->oauth_bearer)) {
           /* one of them was different */
           continue;
         }
@@ -1442,8 +1456,8 @@ ConnectionExists(struct Curl_easy *data,
            possible. (Especially we must not reuse the same connection if
            partway through a handshake!) */
         if(wantNTLMhttp) {
-          if(Curl_timestrcmp(needle->user, check->user) ||
-             Curl_timestrcmp(needle->passwd, check->passwd)) {
+          if(strcmp(needle->user, check->user) ||
+             strcmp(needle->passwd, check->passwd)) {
 
             /* we prefer a credential match, but this is at least a connection
                that can be reused and "upgraded" to NTLM */
@@ -1465,10 +1479,8 @@ ConnectionExists(struct Curl_easy *data,
           if(!check->http_proxy.user || !check->http_proxy.passwd)
             continue;
 
-          if(Curl_timestrcmp(needle->http_proxy.user,
-                             check->http_proxy.user) ||
-             Curl_timestrcmp(needle->http_proxy.passwd,
-                             check->http_proxy.passwd))
+          if(strcmp(needle->http_proxy.user, check->http_proxy.user) ||
+             strcmp(needle->http_proxy.passwd, check->http_proxy.passwd))
             continue;
         }
         else if(check->proxy_ntlm_state != NTLMSTATE_NONE) {
@@ -1640,7 +1652,7 @@ CURLcode Curl_idnconvert_hostname(struct Curl_easy *data,
 #elif defined(USE_WIN32_IDN)
     char *ace_hostname = NULL;
 
-    if(Curl_win32_idn_to_ascii(host->name, &ace_hostname)) {
+    if(curl_win32_idn_to_ascii(host->name, &ace_hostname)) {
       host->encalloc = ace_hostname;
       /* change the name pointer to point to the encoded hostname */
       host->name = host->encalloc;
@@ -1671,7 +1683,7 @@ void Curl_free_idnconverted_hostname(struct hostname *host)
   }
 #elif defined(USE_WIN32_IDN)
   free(host->encalloc); /* must be freed with free() since this was
-                           allocated by Curl_win32_idn_to_ascii */
+                           allocated by curl_win32_idn_to_ascii */
   host->encalloc = NULL;
 #else
   (void)host;
@@ -1841,18 +1853,15 @@ static struct connectdata *allocate_conn(struct Curl_easy *data)
 }
 
 /* returns the handler if the given scheme is built-in */
-const struct Curl_handler *Curl_builtin_scheme(const char *scheme,
-                                               size_t schemelen)
+const struct Curl_handler *Curl_builtin_scheme(const char *scheme)
 {
   const struct Curl_handler * const *pp;
   const struct Curl_handler *p;
   /* Scan protocol handler table and match against 'scheme'. The handler may
      be changed later when the protocol specific setup function is called. */
-  if(schemelen == CURL_ZERO_TERMINATED)
-    schemelen = strlen(scheme);
   for(pp = protocols; (p = *pp) != NULL; pp++)
-    if(strncasecompare(p->scheme, scheme, schemelen) && !p->scheme[schemelen])
-      /* Protocol found in table. */
+    if(strcasecompare(p->scheme, scheme))
+      /* Protocol found in table. Check if allowed */
       return p;
   return NULL; /* not found */
 }
@@ -1862,8 +1871,7 @@ static CURLcode findprotocol(struct Curl_easy *data,
                              struct connectdata *conn,
                              const char *protostr)
 {
-  const struct Curl_handler *p = Curl_builtin_scheme(protostr,
-                                                     CURL_ZERO_TERMINATED);
+  const struct Curl_handler *p = Curl_builtin_scheme(protostr);
 
   if(p && /* Protocol found in table. Check if allowed */
      (data->set.allowed_protocols & p->protocol)) {
@@ -1987,7 +1995,7 @@ static CURLcode parseurlandfillconn(struct Curl_easy *data,
     return CURLE_OUT_OF_MEMORY;
 
   if(data->set.str[STRING_DEFAULT_PROTOCOL] &&
-     !Curl_is_absolute_url(data->state.url, NULL, 0, TRUE)) {
+     !Curl_is_absolute_url(data->state.url, NULL, 0)) {
     char *url = aprintf("%s://%s", data->set.str[STRING_DEFAULT_PROTOCOL],
                         data->state.url);
     if(!url)
@@ -2904,15 +2912,15 @@ CURLcode Curl_parse_login_details(const char *login, const size_t len,
           (psep && psep > osep ? (size_t)(psep - osep) :
                                  (size_t)(login + len - osep)) - 1 : 0);
 
-  /* Allocate the user portion buffer, which can be zero length */
-  if(userp) {
+  /* Allocate the user portion buffer */
+  if(userp && ulen) {
     ubuf = malloc(ulen + 1);
     if(!ubuf)
       result = CURLE_OUT_OF_MEMORY;
   }
 
   /* Allocate the password portion buffer */
-  if(!result && passwdp && psep) {
+  if(!result && passwdp && plen) {
     pbuf = malloc(plen + 1);
     if(!pbuf) {
       free(ubuf);
@@ -3495,9 +3503,9 @@ static CURLcode resolve_proxy(struct Curl_easy *data,
 }
 #endif
 
-static CURLcode resolve_host(struct Curl_easy *data,
-                             struct connectdata *conn,
-                             bool *async)
+static CURLcode resolve_ip(struct Curl_easy *data,
+                           struct connectdata *conn,
+                           bool *async)
 {
   struct Curl_dns_entry *hostaddr = NULL;
   struct hostname *connhost;
@@ -3563,7 +3571,7 @@ static CURLcode resolve_fresh(struct Curl_easy *data,
     return resolve_proxy(data, conn, async);
 #endif
 
-  return resolve_host(data, conn, async);
+  return resolve_ip(data, conn, async);
 }
 
 /*************************************************************
