@@ -53,6 +53,5 @@ void Curl_strntoupper(char *dest, const char *src, size_t n);
 void Curl_strntolower(char *dest, const char *src, size_t n);
 
 bool Curl_safecmp(char *a, char *b);
-int Curl_timestrcmp(const char *first, const char *second);
 
 #endif /* HEADER_CURL_STRCASE_H */

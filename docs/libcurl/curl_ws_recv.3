@@ -24,28 +24,34 @@
 .\"
 .TH curl_ws_recv 3 "12 Jun 2022" "libcurl 7.85.0" "libcurl Manual"
 .SH NAME
-curl_ws_recv - receive WebSocket data
+curl_ws_recv - receive websocket data
 .SH SYNOPSIS
 .nf
 #include <curl/easy.h>
 
 CURLcode curl_ws_recv(CURL *curl, void *buffer, size_t buflen,
-                      size_t *recv, struct curl_ws_frame **meta);
+                      size_t *recv, unsigned int *recvflags);
 .fi
 .SH DESCRIPTION
 This function call is EXPERIMENTAL.
 
-Retrieves as much as possible of a received WebSocket data fragment into the
-\fBbuffer\fP, but not more than \fBbuflen\fP bytes. \fIrecv\fP is set to the
-number of bytes actually stored.
-
-If there is more fragment data to deliver than what fits in the provided
-\fIbuffer\fP, libcurl returns a full buffer and the application needs to call
-this function again to continue draining the buffer.
-
-The \fImeta\fP pointer gets set to point to a \fIstruct curl_ws_frame\fP that
-contains information about the received data. See the \fIcurl_ws_meta(3)\fP
-for details on that struct.
+Retrives as much as possible of a received WebSockets data fragment into the
+\fBbuffer\fP, but not more than \fBbuflen\fP bytes. The provide
+\fIrecvflags\fP argument gets bits set to help characterize the fragment.
+.SH RECVFLAGS
+.IP CURLWS_TEXT
+The buffer contains text data. Note that this makes a difference to WebSockets
+but libcurl itself will not make any verification of the content or
+precautions that you actually receive valid UTF-8 content.
+.IP CURLWS_BINARY
+This is binary data.
+.IP CURLWS_FINAL
+This is the final fragment of the message, if this is not set, it implies that
+there will be another fragment coming as part of the same message.
+.IP CURLWS_CLOSE
+This transfer is now closed.
+.IP CURLWS_PING
+This as an incoming ping message, that expects a pong response.
 .SH EXAMPLE
 .nf
 

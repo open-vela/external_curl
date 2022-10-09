@@ -678,9 +678,11 @@ if(WIN32)
 endif()
 
 set(HAVE_LIBZ OFF)
+set(HAVE_ZLIB_H OFF)
 set(USE_ZLIB OFF)
 optional_dependency(ZLIB)
 if(ZLIB_FOUND)
+  set(HAVE_ZLIB_H ON)
   set(HAVE_LIBZ ON)
   set(USE_ZLIB ON)
 
@@ -728,14 +730,24 @@ endif()
 option(CURL_USE_LIBPSL "Use libPSL" ON)
 mark_as_advanced(CURL_USE_LIBPSL)
 set(USE_LIBPSL OFF)
+set(HAVE_LIBPSL OFF)
+set(HAVE_LIBSPSL_H OFF)
 
 if(CURL_USE_LIBPSL)
   find_package(LibPSL)
   if(LIBPSL_FOUND)
     list(APPEND CURL_LIBS ${LIBPSL_LIBRARY})
+    set(CMAKE_REQUIRED_LIBRARIES ${LIBPSL_LIBRARY})
     list(APPEND CMAKE_REQUIRED_INCLUDES "${LIBPSL_INCLUDE_DIR}")
     include_directories("${LIBPSL_INCLUDE_DIR}")
+    set(HAVE_LIBPSL ON)
     set(USE_LIBPSL ON)
+
+    # find_package has already found the headers
+    set(HAVE_LIBPSL_H ON)
+    set(CURL_INCLUDES ${CURL_INCLUDES} "${LIBPSL_INCLUDE_DIR}/libpsl.h")
+    set(CURL_TEST_DEFINES "${CURL_TEST_DEFINES} -DHAVE_LIBPSL_H")
+    unset(CMAKE_REQUIRED_LIBRARIES)
   endif()
 endif()
 
@@ -743,27 +755,38 @@ endif()
 option(CURL_USE_LIBSSH2 "Use libSSH2" ON)
 mark_as_advanced(CURL_USE_LIBSSH2)
 set(USE_LIBSSH2 OFF)
+set(HAVE_LIBSSH2 OFF)
+set(HAVE_LIBSSH2_H OFF)
 
 if(CURL_USE_LIBSSH2)
   find_package(LibSSH2)
   if(LIBSSH2_FOUND)
     list(APPEND CURL_LIBS ${LIBSSH2_LIBRARY})
+    set(CMAKE_REQUIRED_LIBRARIES ${LIBSSH2_LIBRARY})
     list(APPEND CMAKE_REQUIRED_INCLUDES "${LIBSSH2_INCLUDE_DIR}")
     include_directories("${LIBSSH2_INCLUDE_DIR}")
+    set(HAVE_LIBSSH2 ON)
     set(USE_LIBSSH2 ON)
+
+    # find_package has already found the headers
+    set(HAVE_LIBSSH2_H ON)
+    set(CURL_INCLUDES ${CURL_INCLUDES} "${LIBSSH2_INCLUDE_DIR}/libssh2.h")
+    set(CURL_TEST_DEFINES "${CURL_TEST_DEFINES} -DHAVE_LIBSSH2_H")
+    unset(CMAKE_REQUIRED_LIBRARIES)
   endif()
 endif()
 
 # libssh
 option(CURL_USE_LIBSSH "Use libSSH" OFF)
 mark_as_advanced(CURL_USE_LIBSSH)
-if(NOT USE_LIBSSH2 AND CURL_USE_LIBSSH)
+if(NOT HAVE_LIBSSH2 AND CURL_USE_LIBSSH)
   find_package(libssh CONFIG)
   if(libssh_FOUND)
     message(STATUS "Found libssh ${libssh_VERSION}")
     # Use imported target for include and library paths.
     list(APPEND CURL_LIBS ssh)
     set(USE_LIBSSH ON)
+    set(HAVE_LIBSSH_LIBSSH_H 1)
   endif()
 endif()
 
@@ -1014,8 +1037,7 @@ endif()
 check_symbol_exists(fchmod        "${CURL_INCLUDES}" HAVE_FCHMOD)
 check_symbol_exists(basename      "${CURL_INCLUDES}" HAVE_BASENAME)
 check_symbol_exists(socket        "${CURL_INCLUDES}" HAVE_SOCKET)
-check_symbol_exists(recv          "${CURL_INCLUDES}" HAVE_RECV)
-check_symbol_exists(send          "${CURL_INCLUDES}" HAVE_SEND)
+check_symbol_exists(socketpair    "${CURL_INCLUDES}" HAVE_SOCKETPAIR)
 check_symbol_exists(select        "${CURL_INCLUDES}" HAVE_SELECT)
 check_symbol_exists(strdup        "${CURL_INCLUDES}" HAVE_STRDUP)
 check_symbol_exists(strtok_r      "${CURL_INCLUDES}" HAVE_STRTOK_R)
@@ -1058,11 +1080,6 @@ check_symbol_exists(getrlimit      "${CURL_INCLUDES}" HAVE_GETRLIMIT)
 check_symbol_exists(setlocale      "${CURL_INCLUDES}" HAVE_SETLOCALE)
 check_symbol_exists(setmode        "${CURL_INCLUDES}" HAVE_SETMODE)
 check_symbol_exists(setrlimit      "${CURL_INCLUDES}" HAVE_SETRLIMIT)
-
-if(NOT MSVC OR (MSVC_VERSION GREATER_EQUAL 1900))
-  # earlier MSVC compilers had faulty snprintf implementations
-  check_symbol_exists(snprintf       "${CURL_INCLUDES}" HAVE_SNPRINTF)
-endif()
 check_function_exists(mach_absolute_time HAVE_MACH_ABSOLUTE_TIME)
 check_symbol_exists(inet_pton      "${CURL_INCLUDES}" HAVE_INET_PTON)
 
@@ -1211,6 +1228,18 @@ curl_internal_test(HAVE_BUILTIN_AVAILABLE)
 
 if(NOT HAVE_IN_ADDR_T)
   set(in_addr_t "unsigned long")
+endif()
+
+# Fix libz / zlib.h
+
+if(NOT CURL_SPECIAL_LIBZ)
+  if(NOT HAVE_LIBZ)
+    set(HAVE_ZLIB_H 0)
+  endif()
+
+  if(NOT HAVE_ZLIB_H)
+    set(HAVE_LIBZ 0)
+  endif()
 endif()
 
 # Check for nonblocking

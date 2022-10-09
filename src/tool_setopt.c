@@ -33,7 +33,6 @@
 #include "tool_easysrc.h"
 #include "tool_setopt.h"
 #include "tool_msgs.h"
-#include "dynbuf.h"
 
 #include "memdebug.h" /* keep this as LAST include */
 
@@ -146,6 +145,35 @@ const struct NameValue setopt_nv_CURL_NETRC[] = {
   NVEND,
 };
 
+/* These mappings essentially triplicated - see
+ * tool_libinfo.c and tool_paramhlp.c */
+const struct NameValue setopt_nv_CURLPROTO[] = {
+  NV(CURLPROTO_ALL),            /* combination */
+  NV(CURLPROTO_DICT),
+  NV(CURLPROTO_FILE),
+  NV(CURLPROTO_FTP),
+  NV(CURLPROTO_FTPS),
+  NV(CURLPROTO_GOPHER),
+  NV(CURLPROTO_HTTP),
+  NV(CURLPROTO_HTTPS),
+  NV(CURLPROTO_IMAP),
+  NV(CURLPROTO_IMAPS),
+  NV(CURLPROTO_LDAP),
+  NV(CURLPROTO_LDAPS),
+  NV(CURLPROTO_POP3),
+  NV(CURLPROTO_POP3S),
+  NV(CURLPROTO_RTSP),
+  NV(CURLPROTO_SCP),
+  NV(CURLPROTO_SFTP),
+  NV(CURLPROTO_SMB),
+  NV(CURLPROTO_SMBS),
+  NV(CURLPROTO_SMTP),
+  NV(CURLPROTO_SMTPS),
+  NV(CURLPROTO_TELNET),
+  NV(CURLPROTO_TFTP),
+  NVEND,
+};
+
 /* These options have non-zero default values. */
 static const struct NameValue setopt_nv_CURLNONZERODEFAULTS[] = {
   NV1(CURLOPT_SSL_VERIFYPEER, 1),
@@ -206,11 +234,9 @@ static const struct NameValue setopt_nv_CURLNONZERODEFAULTS[] = {
 static char *c_escape(const char *str, curl_off_t len)
 {
   const char *s;
+  unsigned char c;
+  char *escaped, *e;
   unsigned int cutoff = 0;
-  CURLcode result;
-  struct curlx_dynbuf escaped;
-
-  curlx_dyn_init(&escaped, 4 * MAX_STRING_LENGTH_OUTPUT + 3);
 
   if(len == ZERO_TERMINATED)
     len = strlen(str);
@@ -221,44 +247,51 @@ static char *c_escape(const char *str, curl_off_t len)
     cutoff = 3;
   }
 
-  result = curlx_dyn_addn(&escaped, STRCONST(""));
-  for(s = str; !result && len; s++, len--) {
-    /* escape question marks as well, to prevent generating accidental
-       trigraphs */
-    static const char from[] = "\t\r\n?\"\\";
-    static const char to[] = "\\t\\r\\n\\?\\\"\\\\";
-    const char *p = strchr(from, *s);
+  /* Allocate space based on worst-case */
+  escaped = malloc(4 * (size_t)len + 1 + cutoff);
+  if(!escaped)
+    return NULL;
 
-    if(!p && ISPRINT(*s))
-      continue;
-
-    result = curlx_dyn_addn(&escaped, str, s - str);
-    str = s + 1;
-
-    if(!result) {
-      if(p && *p)
-        result = curlx_dyn_addn(&escaped, to + 2 * (p - from), 2);
-      else {
-        const char *format = "\\x%02x";
-
-        if(len > 1 && ISXDIGIT(s[1])) {
-          /* Octal escape to avoid >2 digit hex. */
-          format = "\\%03o";
-        }
-
-        result = curlx_dyn_addf(&escaped, format,
-                                (unsigned int) *(unsigned char *) s);
-      }
+  e = escaped;
+  for(s = str; len; s++, len--) {
+    c = *s;
+    if(c == '\n') {
+      strcpy(e, "\\n");
+      e += 2;
     }
+    else if(c == '\r') {
+      strcpy(e, "\\r");
+      e += 2;
+    }
+    else if(c == '\t') {
+      strcpy(e, "\\t");
+      e += 2;
+    }
+    else if(c == '\\') {
+      strcpy(e, "\\\\");
+      e += 2;
+    }
+    else if(c == '"') {
+      strcpy(e, "\\\"");
+      e += 2;
+    }
+    else if(c == '?') {
+      /* escape question marks as well, to prevent generating accidental
+         trigraphs */
+      strcpy(e, "\\?");
+      e += 2;
+    }
+    else if(!ISPRINT(c)) {
+      msnprintf(e, 5, "\\x%02x", (unsigned)c);
+      e += 4;
+    }
+    else
+      *e++ = c;
   }
-
-  if(!result)
-    result = curlx_dyn_addn(&escaped, str, s - str);
-
-  if(!result)
-    (void) !curlx_dyn_addn(&escaped, "...", cutoff);
-
-  return curlx_dyn_ptr(&escaped);
+  while(cutoff--)
+    *e++ = '.';
+  *e = '\0';
+  return escaped;
 }
 
 /* setopt wrapper for enum types */

@@ -22,6 +22,9 @@
  *
  ***************************************************************************/
 #include "tool_setup.h"
+#if defined(HAVE_STRCASECMP) && defined(HAVE_STRINGS_H)
+#include <strings.h>
+#endif
 #define ENABLE_CURLX_PRINTF
 /* use our own printf() functions */
 #include "curlx.h"
@@ -29,7 +32,6 @@
 #include "tool_panykey.h"
 #include "tool_help.h"
 #include "tool_libinfo.h"
-#include "tool_util.h"
 #include "tool_version.h"
 
 #include "memdebug.h" /* keep this as LAST include */
@@ -188,6 +190,22 @@ void tool_help(char *category)
   free(category);
 }
 
+static int
+featcomp(const void *p1, const void *p2)
+{
+  /* The arguments to this function are "pointers to pointers to char", but
+     the comparison arguments are "pointers to char", hence the following cast
+     plus dereference */
+#ifdef HAVE_STRCASECMP
+  return strcasecmp(* (char * const *) p1, * (char * const *) p2);
+#elif defined(HAVE_STRCMPI)
+  return strcmpi(* (char * const *) p1, * (char * const *) p2);
+#elif defined(HAVE_STRICMP)
+  return stricmp(* (char * const *) p1, * (char * const *) p2);
+#else
+  return strcmp(* (char * const *) p1, * (char * const *) p2);
+#endif
+}
 
 void tool_version_info(void)
 {
@@ -203,10 +221,7 @@ void tool_version_info(void)
   if(curlinfo->protocols) {
     printf("Protocols: ");
     for(proto = curlinfo->protocols; *proto; ++proto) {
-      /* Special case: do not list rtmp?* protocols.
-         They may only appear together with "rtmp" */
-      if(!curl_strnequal(*proto, "rtmp", 4) || !proto[0][4])
-        printf("%s ", *proto);
+      printf("%s ", *proto);
     }
     puts(""); /* newline */
   }
@@ -219,7 +234,7 @@ void tool_version_info(void)
       if(curlinfo->features & feats[i].bitmask)
         featp[numfeat++] = (char *)feats[i].name;
     }
-    qsort(&featp[0], numfeat, sizeof(char *), struplocompare4sort);
+    qsort(&featp[0], numfeat, sizeof(char *), featcomp);
     for(i = 0; i< numfeat; i++)
       printf(" %s", featp[i]);
     puts(""); /* newline */

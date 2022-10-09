@@ -5,6 +5,8 @@
 name: Linux
 
 on:
+  # Trigger the workflow on push or pull requests, but only for the
+  # master branch
   push:
     branches:
     - master
@@ -12,11 +14,6 @@ on:
   pull_request:
     branches:
     - master
-
-concurrency:
-  # Hardcoded workflow filename as workflow name above is just Linux again
-  group: wolfssl-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
 
 jobs:
   autotools:
@@ -49,7 +46,7 @@ jobs:
         cd wolfssl-5.0.0-stable
         ./autogen.sh
         ./configure --enable-tls13 ${{ matrix.build.wolfssl-configure }} --enable-harden --prefix=$HOME/wssl
-        make install
+        make && make install
       name: 'install wolfssl'
 
     - uses: actions/checkout@v3
@@ -66,10 +63,7 @@ jobs:
     - run: make V=1 examples
       name: 'make examples'
 
-    - run: make V=1 -C tests
-      name: 'make tests'
-
     - run: make V=1 test-ci
-      name: 'run tests'
+      name: 'test'
       env:
         TFLAGS: "${{ matrix.build.tflags }}"

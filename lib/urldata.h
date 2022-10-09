@@ -54,31 +54,12 @@
 #define PORT_MQTT 1883
 
 #ifdef USE_WEBSOCKETS
-/* CURLPROTO_GOPHERS (29) is the highest publicly used protocol bit number,
- * the rest are internal information. If we use higher bits we only do this on
- * platforms that have a >= 64 bit type and then we use such a type for the
- * protocol fields in the protocol handler.
- */
 #define CURLPROTO_WS     (1<<30)
-#define CURLPROTO_WSS    ((curl_prot_t)1<<31)
+#define CURLPROTO_WSS    (1LL<<31)
 #else
 #define CURLPROTO_WS 0
 #define CURLPROTO_WSS 0
 #endif
-
-/* This should be undefined once we need bit 32 or higher */
-#define PROTO_TYPE_SMALL
-
-#ifndef PROTO_TYPE_SMALL
-typedef curl_off_t curl_prot_t;
-#else
-typedef unsigned int curl_prot_t;
-#endif
-
-/* This mask is for all the old protocols that are provided and defined in the
-   public header and shall exclude protocols added since which are not exposed
-   in the API */
-#define CURLPROTO_MASK   (0x3ffffff)
 
 #define DICT_MATCH "/MATCH:"
 #define DICT_MATCH2 "/M:"
@@ -185,10 +166,10 @@ typedef CURLcode (*Curl_datastream)(struct Curl_easy *data,
 # endif
 #endif
 
-#ifdef USE_LIBSSH2
+#ifdef HAVE_LIBSSH2_H
 #include <libssh2.h>
 #include <libssh2_sftp.h>
-#endif /* USE_LIBSSH2 */
+#endif /* HAVE_LIBSSH2_H */
 
 #define READBUFFER_SIZE CURL_MAX_WRITE_SIZE
 #define READBUFFER_MAX  CURL_MAX_READ_SIZE
@@ -580,7 +561,7 @@ struct Curl_async {
   struct Curl_dns_entry *dns;
   struct thread_data *tdata;
   void *resolver; /* resolver state, if it is used in the URL state -
-                     ares_channel e.g. */
+                     ares_channel f.e. */
   int port;
   int status; /* if done is TRUE, this is the status from the callback */
   BIT(done);  /* set TRUE when the lookup is complete */
@@ -806,10 +787,10 @@ struct Curl_handler {
   void (*attach)(struct Curl_easy *data, struct connectdata *conn);
 
   int defport;            /* Default port. */
-  curl_prot_t protocol;  /* See CURLPROTO_* - this needs to be the single
-                            specific protocol bit */
-  curl_prot_t family;    /* single bit for protocol family; basically the
-                            non-TLS name of the protocol this is */
+  unsigned int protocol;  /* See CURLPROTO_* - this needs to be the single
+                             specific protocol bit */
+  unsigned int family;    /* single bit for protocol family; basically the
+                             non-TLS name of the protocol this is */
   unsigned int flags;     /* Extra particular characteristics, see PROTOPT_* */
 
 };
@@ -1364,7 +1345,7 @@ struct UrlState {
      This is strdup()ed data. */
   char *first_host;
   int first_remote_port;
-  curl_prot_t first_remote_protocol;
+  unsigned int first_remote_protocol;
 
   int retrycount; /* number of retries on a new connection */
   struct Curl_ssl_session *session; /* array of 'max_ssl_sessions' size */
@@ -1795,8 +1776,8 @@ struct UserDefined {
 #ifdef ENABLE_IPV6
   unsigned int scope_id;  /* Scope id for IPv6 */
 #endif
-  curl_prot_t allowed_protocols;
-  curl_prot_t redir_protocols;
+  curl_off_t allowed_protocols;
+  curl_off_t redir_protocols;
   unsigned int mime_options;      /* Mime option flags. */
 
 #ifndef CURL_DISABLE_RTSP
