@@ -273,11 +273,11 @@ static CURLcode pre_transfer(struct GlobalConfig *global,
     /* VMS Note:
      *
      * Reading binary from files can be a problem...  Only FIXED, VAR
-     * etc WITHOUT implied CC will work Others need a \n appended to a
-     * line
+     * etc WITHOUT implied CC will work. Others need a \n appended to
+     * a line
      *
-     * - Stat gives a size but this is UNRELIABLE in VMS As a f.e. a
-     * fixed file with implied CC needs to have a byte added for every
+     * - Stat gives a size but this is UNRELIABLE in VMS. E.g.
+     * a fixed file with implied CC needs to have a byte added for every
      * record processed, this can be derived from Filesize & recordsize
      * for VARiable record files the records need to be counted!  for
      * every record add 1 for linefeed and subtract 2 for the record
@@ -465,9 +465,10 @@ static CURLcode post_per_transfer(struct GlobalConfig *global,
       /* If it returned OK. _or_ failonerror was enabled and it
          returned due to such an error, check for HTTP transient
          errors to retry on. */
-      long protocol = 0;
-      curl_easy_getinfo(curl, CURLINFO_PROTOCOL, &protocol);
-      if((protocol == CURLPROTO_HTTP) || (protocol == CURLPROTO_HTTPS)) {
+      const char *scheme;
+      curl_easy_getinfo(curl, CURLINFO_SCHEME, &scheme);
+      scheme = proto_token(scheme);
+      if(scheme == proto_http || scheme == proto_https) {
         /* This was HTTP(S) */
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response);
 
@@ -494,13 +495,13 @@ static CURLcode post_per_transfer(struct GlobalConfig *global,
       }
     } /* if CURLE_OK */
     else if(result) {
-      long protocol = 0;
+      const char *scheme;
 
       curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response);
-      curl_easy_getinfo(curl, CURLINFO_PROTOCOL, &protocol);
+      curl_easy_getinfo(curl, CURLINFO_SCHEME, &scheme);
+      scheme = proto_token(scheme);
 
-      if((protocol == CURLPROTO_FTP || protocol == CURLPROTO_FTPS) &&
-         response / 100 == 4)
+      if((scheme == proto_ftp || scheme == proto_ftps) && response / 100 == 4)
         /*
          * This is typically when the FTP server only allows a certain
          * amount of users and we are not one of them.  All 4xx codes
@@ -686,12 +687,13 @@ static void single_transfer_cleanup(struct OperationConfig *config)
 }
 
 /*
- * Return the proto bit for the scheme used in the given URL
+ * Return the protocol token for the scheme used in the given URL
  */
-static long url_proto(char *url)
+static const char *url_proto(char *url)
 {
   CURLU *uh = curl_url();
-  long proto = 0;
+  const char *proto = NULL;
+
   if(uh) {
     if(url) {
       if(!curl_url_set(uh, CURLUPART_URL, url,
@@ -700,14 +702,14 @@ static long url_proto(char *url)
         if(!curl_url_get(uh, CURLUPART_SCHEME, &schemep,
                          CURLU_DEFAULT_SCHEME) &&
            schemep) {
-          proto = scheme2protocol(schemep);
+          proto = proto_token(schemep);
           curl_free(schemep);
         }
       }
     }
     curl_url_cleanup(uh);
   }
-  return proto;
+  return proto? proto: "???";   /* Never match if not found. */
 }
 
 /* create the next (singular) transfer */
@@ -850,7 +852,7 @@ static CURLcode single_transfer(struct GlobalConfig *global,
         struct OutStruct *etag_save;
         struct HdrCbData *hdrcbdata = NULL;
         struct OutStruct etag_first;
-        long use_proto;
+        const char *use_proto;
         CURL *curl;
 
         /* --etag-save */
@@ -1247,14 +1249,7 @@ static CURLcode single_transfer(struct GlobalConfig *global,
         if(result)
           break;
 
-        /* here */
         use_proto = url_proto(per->this_url);
-#if 0
-        if(!(use_proto & built_in_protos)) {
-          warnf(global, "URL is '%s' but no support for the scheme\n",
-                per->this_url);
-        }
-#endif
 
         if(!config->tcp_nodelay)
           my_setopt(curl, CURLOPT_TCP_NODELAY, 0L);
@@ -1406,13 +1401,12 @@ static CURLcode single_transfer(struct GlobalConfig *global,
 
         my_setopt_slist(curl, CURLOPT_HTTPHEADER, config->headers);
 
-        if(built_in_protos & (CURLPROTO_HTTP | CURLPROTO_RTSP)) {
+        if(proto_http || proto_rtsp) {
           my_setopt_str(curl, CURLOPT_REFERER, config->referer);
           my_setopt_str(curl, CURLOPT_USERAGENT, config->useragent);
         }
 
-        if(built_in_protos & CURLPROTO_HTTP) {
-
+        if(proto_http) {
           long postRedir = 0;
 
           my_setopt(curl, CURLOPT_FOLLOWLOCATION,
@@ -1462,9 +1456,10 @@ static CURLcode single_transfer(struct GlobalConfig *global,
             return result;
           }
 
-        } /* (built_in_protos & CURLPROTO_HTTP) */
+        } /* (proto_http) */
 
-        my_setopt_str(curl, CURLOPT_FTPPORT, config->ftpport);
+        if(proto_ftp)
+          my_setopt_str(curl, CURLOPT_FTPPORT, config->ftpport);
         my_setopt(curl, CURLOPT_LOW_SPEED_LIMIT,
                   config->low_speed_limit);
         my_setopt(curl, CURLOPT_LOW_SPEED_TIME, config->low_speed_time);
@@ -1481,7 +1476,7 @@ static CURLcode single_transfer(struct GlobalConfig *global,
         my_setopt_str(curl, CURLOPT_KEYPASSWD, config->key_passwd);
         my_setopt_str(curl, CURLOPT_PROXY_KEYPASSWD, config->proxy_key_passwd);
 
-        if(use_proto & (CURLPROTO_SCP|CURLPROTO_SFTP)) {
+        if(use_proto == proto_scp || use_proto == proto_sftp) {
 
           /* SSH and SSL private key uses same command-line option */
           /* new in libcurl 7.16.1 */
@@ -1752,7 +1747,7 @@ static CURLcode single_transfer(struct GlobalConfig *global,
         if(config->path_as_is)
           my_setopt(curl, CURLOPT_PATH_AS_IS, 1L);
 
-        if((use_proto & (CURLPROTO_SCP|CURLPROTO_SFTP)) &&
+        if((use_proto == proto_scp || use_proto == proto_sftp) &&
            !config->insecure_ok) {
           char *known = findfile(".ssh/known_hosts", FALSE);
           if(known) {
@@ -1962,7 +1957,9 @@ static CURLcode single_transfer(struct GlobalConfig *global,
         my_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, config->ftp_skip_ip?1L:0L);
 
         /* curl 7.15.1 */
-        my_setopt(curl, CURLOPT_FTP_FILEMETHOD, (long)config->ftp_filemethod);
+        if(proto_ftp)
+          my_setopt(curl, CURLOPT_FTP_FILEMETHOD,
+                    (long)config->ftp_filemethod);
 
         /* curl 7.15.2 */
         if(config->localport) {
@@ -1997,7 +1994,7 @@ static CURLcode single_transfer(struct GlobalConfig *global,
           my_setopt(curl, CURLOPT_TCP_KEEPALIVE, 0L);
 
         /* curl 7.20.0 */
-        if(config->tftp_blksize)
+        if(config->tftp_blksize && proto_tftp)
           my_setopt(curl, CURLOPT_TFTP_BLKSIZE, config->tftp_blksize);
 
         if(config->mail_from)
@@ -2110,7 +2107,7 @@ static CURLcode single_transfer(struct GlobalConfig *global,
                         (long)(config->expect100timeout*1000));
 
         /* new in 7.48.0 */
-        if(config->tftp_no_options)
+        if(config->tftp_no_options && proto_tftp)
           my_setopt(curl, CURLOPT_TFTP_NO_OPTIONS, 1L);
 
         /* new in 7.59.0 */
@@ -2417,13 +2414,12 @@ static CURLcode serial_transfers(struct GlobalConfig *global,
     if(result)
       break;
 
-#ifndef CURL_DISABLE_LIBCURL_OPTION
     if(global->libcurl) {
       result = easysrc_perform();
       if(result)
         break;
     }
-#endif
+
     start = tvnow();
 #ifdef CURLDEBUG
     if(global->test_event_based)
@@ -2679,10 +2675,8 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
       if(res == PARAM_HELP_REQUESTED)
         tool_help(global->help_category);
       /* Check if we were asked for the manual */
-#ifdef USE_MANUAL
       else if(res == PARAM_MANUAL_REQUESTED)
         hugehelp();
-#endif
       /* Check if we were asked for the version information */
       else if(res == PARAM_VERSION_INFO_REQUESTED)
         tool_version_info();
@@ -2697,12 +2691,10 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
         result = CURLE_FAILED_INIT;
     }
     else {
-#ifndef CURL_DISABLE_LIBCURL_OPTION
       if(global->libcurl) {
         /* Initialise the libcurl source output */
         result = easysrc_init();
       }
-#endif
 
       /* Perform the main operations */
       if(!result) {
@@ -2710,12 +2702,10 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
         struct OperationConfig *operation = global->first;
         CURLSH *share = curl_share_init();
         if(!share) {
-#ifndef CURL_DISABLE_LIBCURL_OPTION
           if(global->libcurl) {
             /* Cleanup the libcurl source output */
             easysrc_cleanup();
           }
-#endif
           return CURLE_OUT_OF_MEMORY;
         }
 
@@ -2739,7 +2729,6 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
         result = run_all_transfers(global, share, result);
 
         curl_share_cleanup(share);
-#ifndef CURL_DISABLE_LIBCURL_OPTION
         if(global->libcurl) {
           /* Cleanup the libcurl source output */
           easysrc_cleanup();
@@ -2747,7 +2736,6 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
           /* Dump the libcurl code if previously enabled */
           dumpeasysrc(global);
         }
-#endif
       }
       else
         errorf(global, "out of memory\n");
