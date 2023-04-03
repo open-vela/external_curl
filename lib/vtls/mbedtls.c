@@ -37,6 +37,7 @@
 /* #define MBEDTLS_DEBUG */
 
 #include <mbedtls/version.h>
+#include <mbedtls/compat-2.x.h>
 #if MBEDTLS_VERSION_NUMBER >= 0x02040000
 #include <mbedtls/net_sockets.h>
 #else
