@@ -32,6 +32,10 @@
 #include <sys/poll.h>
 #endif
 
+#ifdef CONFIG_FDCHECK
+#include <nuttx/fdcheck.h>
+#endif
+
 /*
  * Definition of pollfd struct and constants for platforms lacking them.
  */
@@ -100,8 +104,12 @@ int Curl_wait_ms(timediff_t timeout_ms);
 #else
 #define VALID_SOCK(s) ((s) >= 0)
 
+#ifdef CONFIG_FDCHECK
 /* If the socket is small enough to get set or read from an fdset */
+#define FDSET_SOCK(s) ((fdcheck_restore(s)) < FD_SETSIZE)
+#else
 #define FDSET_SOCK(s) ((s) < FD_SETSIZE)
+#endif
 
 #define VERIFY_SOCK(x) do {                     \
     if(!VALID_SOCK(x) || !FDSET_SOCK(x)) {      \
