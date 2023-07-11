@@ -350,6 +350,13 @@ set_ssl_version_min_max(struct Curl_cfilter *cf, struct Curl_easy *data)
   return result;
 }
 
+#define CURL_USE_STATIC_CRT
+#ifdef CURL_USE_STATIC_CRT
+#  define mbed_crt_unlock(lock) pthread_mutex_unlock(lock)
+#else
+#  define mbed_crt_unlock(lock)
+#endif
+
 static CURLcode
 mbed_connect_step1(struct Curl_cfilter *cf, struct Curl_easy *data)
 {
@@ -359,11 +366,16 @@ mbed_connect_step1(struct Curl_cfilter *cf, struct Curl_easy *data)
   struct ssl_primary_config *conn_config = Curl_ssl_cf_get_primary_config(cf);
   const struct curl_blob *ca_info_blob = conn_config->ca_info_blob;
   struct ssl_config_data *ssl_config = Curl_ssl_cf_get_config(cf, data);
-  const char * const ssl_cafile =
+  const char *ssl_cafile =
     /* CURLOPT_CAINFO_BLOB overrides CURLOPT_CAINFO */
     (ca_info_blob ? NULL : conn_config->CAfile);
+#ifdef CURL_USE_STATIC_CRT
+  static pthread_mutex_t ssl_lock = PTHREAD_MUTEX_INITIALIZER;
+  static
+#endif
+  mbedtls_x509_crt *local_cacert = NULL;
   const bool verifypeer = conn_config->verifypeer;
-  const char * const ssl_capath = conn_config->CApath;
+  const char *ssl_capath = conn_config->CApath;
   char * const ssl_cert = ssl_config->primary.clientcert;
   const struct curl_blob *ssl_cert_blob = ssl_config->primary.cert_blob;
   const char * const ssl_crlfile = ssl_config->primary.CRLfile;
@@ -373,9 +385,30 @@ mbed_connect_step1(struct Curl_cfilter *cf, struct Curl_easy *data)
 
   DEBUGASSERT(backend);
 
+#ifdef CURL_USE_STATIC_CRT
+  pthread_mutex_lock(&ssl_lock);
+  if (local_cacert == NULL) {
+      local_cacert = malloc(sizeof(*local_cacert));
+    if (local_cacert == NULL) {
+      mbed_crt_unlock(&ssl_lock);
+      return CURLE_OUT_OF_MEMORY;
+    }
+    mbedtls_x509_crt_init(local_cacert);
+  }
+  else {
+    ssl_cafile = NULL;
+    ssl_capath = NULL;
+  }
+#else
+  local_cacert = &backend->cacert;
+  /* Load the trusted CA */
+  mbedtls_x509_crt_init(local_cacert);
+#endif
+
   if((conn_config->version == CURL_SSLVERSION_SSLv2) ||
      (conn_config->version == CURL_SSLVERSION_SSLv3)) {
     failf(data, "Not supported SSL version");
+    mbed_crt_unlock(&ssl_lock);
     return CURLE_NOT_BUILT_IN;
   }
 
@@ -389,6 +422,7 @@ mbed_connect_step1(struct Curl_cfilter *cf, struct Curl_easy *data)
     mbedtls_strerror(ret, errorbuf, sizeof(errorbuf));
     failf(data, "mbedtls_ctr_drbg_seed returned (-0x%04X) %s",
           -ret, errorbuf);
+    mbed_crt_unlock(&ssl_lock);
     return CURLE_FAILED_INIT;
   }
 #else
@@ -401,67 +435,77 @@ mbed_connect_step1(struct Curl_cfilter *cf, struct Curl_easy *data)
     mbedtls_strerror(ret, errorbuf, sizeof(errorbuf));
     failf(data, "mbedtls_ctr_drbg_seed returned (-0x%04X) %s",
           -ret, errorbuf);
+    mbed_crt_unlock(&ssl_lock);
     return CURLE_FAILED_INIT;
   }
 #endif /* THREADING_SUPPORT */
-
-  /* Load the trusted CA */
-  mbedtls_x509_crt_init(&backend->cacert);
 
   if(ca_info_blob && verifypeer) {
     /* Unfortunately, mbedtls_x509_crt_parse() requires the data to be null
        terminated even when provided the exact length, forcing us to waste
        extra memory here. */
     unsigned char *newblob = malloc(ca_info_blob->len + 1);
-    if(!newblob)
+    if(!newblob) {
+      mbed_crt_unlock(&ssl_lock);
       return CURLE_OUT_OF_MEMORY;
+    }
     memcpy(newblob, ca_info_blob->data, ca_info_blob->len);
     newblob[ca_info_blob->len] = 0; /* null terminate */
-    ret = mbedtls_x509_crt_parse(&backend->cacert, newblob,
+    ret = mbedtls_x509_crt_parse(local_cacert, newblob,
                                  ca_info_blob->len + 1);
     free(newblob);
     if(ret<0) {
       mbedtls_strerror(ret, errorbuf, sizeof(errorbuf));
       failf(data, "Error importing ca cert blob - mbedTLS: (-0x%04X) %s",
             -ret, errorbuf);
+      mbed_crt_unlock(&ssl_lock);
       return CURLE_SSL_CERTPROBLEM;
     }
   }
 
   if(ssl_cafile && verifypeer) {
 #ifdef MBEDTLS_FS_IO
-    ret = mbedtls_x509_crt_parse_file(&backend->cacert, ssl_cafile);
+    ret = mbedtls_x509_crt_parse_file(local_cacert, ssl_cafile);
 
     if(ret<0) {
       mbedtls_strerror(ret, errorbuf, sizeof(errorbuf));
       failf(data, "Error reading ca cert file %s - mbedTLS: (-0x%04X) %s",
             ssl_cafile, -ret, errorbuf);
+      mbed_crt_unlock(&ssl_lock);
       return CURLE_SSL_CACERT_BADFILE;
     }
 #else
     failf(data, "mbedtls: functions that use the filesystem not built in");
+    mbed_crt_unlock(&ssl_lock);
     return CURLE_NOT_BUILT_IN;
 #endif
   }
 
+#ifdef CURL_USE_STATIC_CRT
+  else
+#endif
   if(ssl_capath) {
 #ifdef MBEDTLS_FS_IO
-    ret = mbedtls_x509_crt_parse_path(&backend->cacert, ssl_capath);
+    ret = mbedtls_x509_crt_parse_path(local_cacert, ssl_capath);
 
     if(ret<0) {
       mbedtls_strerror(ret, errorbuf, sizeof(errorbuf));
       failf(data, "Error reading ca cert path %s - mbedTLS: (-0x%04X) %s",
             ssl_capath, -ret, errorbuf);
 
-      if(verifypeer)
+      if(verifypeer) {
+        mbed_crt_unlock(&ssl_lock);
         return CURLE_SSL_CACERT_BADFILE;
+      }
     }
 #else
     failf(data, "mbedtls: functions that use the filesystem not built in");
+    mbed_crt_unlock(&ssl_lock);
     return CURLE_NOT_BUILT_IN;
 #endif
   }
 
+  mbed_crt_unlock(&ssl_lock);
   /* Load the client certificate */
   mbedtls_x509_crt_init(&backend->clicert);
 
@@ -673,7 +717,7 @@ mbed_connect_step1(struct Curl_cfilter *cf, struct Curl_easy *data)
   }
 
   mbedtls_ssl_conf_ca_chain(&backend->config,
-                            &backend->cacert,
+                            local_cacert,
 #ifdef MBEDTLS_X509_CRL_PARSE_C
                             &backend->crl);
 #else
