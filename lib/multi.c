@@ -3418,7 +3418,7 @@ static CURLMcode multi_timeout(struct Curl_multi *multi,
     /* splay the lowest to the bottom */
     multi->timetree = Curl_splay(tv_zero, multi->timetree);
 
-    if(Curl_splaycomparekeys(multi->timetree->key, now) > 0) {
+    if(Curl_splaycomparekeys(multi->timetree->key, now) >= 0) {
       /* some time left before expiration */
       timediff_t diff = Curl_timediff_ceil(multi->timetree->key, now);
       /* this should be safe even on 32 bit archs, as we don't use that

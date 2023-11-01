@@ -61,6 +61,8 @@ static void *curl_thread_create_thunk(void *arg)
 
 curl_thread_t Curl_thread_create(unsigned int (*func) (void *), void *arg)
 {
+  int ret = 0;
+  pthread_attr_t attr;
   curl_thread_t t = malloc(sizeof(pthread_t));
   struct Curl_actual_call *ac = malloc(sizeof(struct Curl_actual_call));
   if(!(ac && t))
@@ -69,7 +71,13 @@ curl_thread_t Curl_thread_create(unsigned int (*func) (void *), void *arg)
   ac->func = func;
   ac->arg = arg;
 
-  if(pthread_create(t, NULL, curl_thread_create_thunk, ac) != 0)
+  pthread_attr_init(&attr);
+#ifdef CONFIG_LIB_CURL_PTHREAD_STACKSIZE
+  pthread_attr_setstacksize(&attr, CONFIG_LIB_CURL_PTHREAD_STACKSIZE);
+#endif
+  ret = pthread_create(t, &attr, curl_thread_create_thunk, ac);
+  pthread_attr_destroy(&attr);
+  if(ret != 0)
     goto err;
 
   return t;

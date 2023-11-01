@@ -688,8 +688,11 @@ static ssize_t send_callback(nghttp2_session *h2,
   (void)flags;
   DEBUGASSERT(data);
 
+  curlx_nonblock(conn->sock[0], FALSE);
   nwritten = Curl_bufq_write_pass(&ctx->outbufq, buf, blen,
                                   nw_out_writer, cf, &result);
+  curlx_nonblock(conn->sock[0], TRUE);
+                                
   if(nwritten < 0) {
     if(result == CURLE_AGAIN) {
       ctx->nw_out_blocked = 1;
