@@ -44,7 +44,7 @@
 #else
 #define curlx_dyn_init(a,b) Curl_dyn_init(a,b)
 #define curlx_dyn_add(a,b) Curl_dyn_add(a,b)
-#define curlx_dyn_addn(a,b,c) Curl_dyn_addn(a,b,c)
+#define curlx_dyn_addn Curl_dyn_addn
 #define curlx_dyn_addf Curl_dyn_addf
 #define curlx_dyn_vaddf Curl_dyn_vaddf
 #define curlx_dyn_free(a) Curl_dyn_free(a)
