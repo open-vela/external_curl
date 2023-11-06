@@ -30,6 +30,8 @@
 #define Curl_base64_encode(a,b,c,d) curlx_base64_encode(a,b,c,d)
 #define Curl_base64url_encode(a,b,c,d) curlx_base64url_encode(a,b,c,d)
 #define Curl_base64_decode(a,b,c) curlx_base64_decode(a,b,c)
+#else
+#define curlx_base64_encode Curl_base64_encode
 #endif
 
 CURLcode Curl_base64_encode(const char *inputbuff, size_t insize,
