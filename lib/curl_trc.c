@@ -110,7 +110,9 @@ void Curl_failf(struct Curl_easy *data, const char *fmt, ...)
 }
 
 /* Curl_infof() is for info message along the way */
+#ifndef MAXINFO
 #define MAXINFO 2048
+#endif
 
 void Curl_infof(struct Curl_easy *data, const char *fmt, ...)
 {
