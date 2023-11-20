@@ -86,9 +86,14 @@
 #  define mp_uintmax_t unsigned long
 #endif
 
+#ifndef BUFFSIZE
 #define BUFFSIZE 326 /* buffer for long-to-str and float-to-str calcs, should
                         fit negative DBL_MAX (317 letters) */
+#endif
+
+#ifndef MAX_PARAMETERS
 #define MAX_PARAMETERS 128 /* lame static limit */
+#endif
 
 #ifdef __AMIGA__
 # undef FORMAT_INT
