@@ -2914,6 +2914,11 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
   setlocale(LC_NUMERIC, "C");
 #endif
 
+  /* Reset global variable */
+  transfers = NULL;
+  transfersl = NULL;
+  all_pers = 0;
+
   /* Parse .curlrc if necessary */
   if((argc == 1) ||
      (first_arg && strncmp(first_arg, "-q", 2) &&
