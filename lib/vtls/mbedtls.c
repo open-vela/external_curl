@@ -31,6 +31,10 @@
 
 #include "curl_setup.h"
 
+#if __NuttX__
+#include <nuttx/tls.h>
+#endif
+
 #ifdef USE_MBEDTLS
 
 /* Define this to enable lots of debugging for mbedTLS */
@@ -108,7 +112,47 @@ struct mbed_ssl_backend_data {
 #endif
 
 #if defined(THREADING_SUPPORT)
+#if defined(CONFIG_TLS_TASK_NELEM) && CONFIG_TLS_TASK_NELEM > 0
+#define ts_entropy (*entropy_get())
+
+static void entropy_free(void *data)
+{
+  mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)data;
+  mbedtls_entropy_free(entropy);
+  free(entropy);
+}
+
+static mbedtls_entropy_context* entropy_get(void)
+{
+  static int index = -1;
+  mbedtls_entropy_context *entropy = NULL;
+  bool first = false;
+
+  Curl_mbedtlsthreadlock_lock_function(0);
+  if (index < 0) {
+    index = task_tls_alloc(entropy_free);
+    first = true;
+  }
+
+  if (index >= 0) {
+    entropy = (mbedtls_entropy_context *)task_tls_get_value(index);
+    if (entropy == NULL) {
+      entropy = (mbedtls_entropy_context *)malloc(sizeof(mbedtls_entropy_context));
+      if (entropy) {
+        if (!first) {
+          mbedtls_entropy_init(entropy);
+        }
+        task_tls_set_value(index, (uintptr_t)entropy);
+      }
+    }
+  }
+
+  Curl_mbedtlsthreadlock_unlock_function(0);
+  return entropy;
+}
+#else
 static mbedtls_entropy_context ts_entropy;
+#endif
 
 static int entropy_init_initialized = 0;
 
