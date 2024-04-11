@@ -257,6 +257,7 @@ struct timeval {
 #endif
 
 /* the type we use for storing a single boolean bit */
+#undef BIT
 #ifdef _MSC_VER
 typedef bool bit;
 #define BIT(x) bool x
