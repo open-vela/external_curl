@@ -29,11 +29,11 @@
  *
  */
 
-#include "curl_setup.h"
-
 #if __NuttX__
 #include <nuttx/tls.h>
 #endif
+
+#include "curl_setup.h"
 
 #ifdef USE_MBEDTLS
 
