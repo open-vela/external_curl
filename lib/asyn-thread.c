@@ -498,8 +498,8 @@ static CURLcode thread_wait_resolv(struct Curl_easy *data,
   DEBUGASSERT(td->thread_hnd != curl_thread_t_null);
 
 #if __NuttX__
-  if (report == FALSE) {
-    syslog(0,"thread_wait_resolv send %d SIGINT \n",*(td->thread_hnd));
+  if (report == FALSE && !td->tsd.done) {
+    syslog(0,"thread_wait_resolv send %d SIGINT \n", *(td->thread_hnd));
     pthread_kill(*(td->thread_hnd), SIGINT);
   }
 #endif
