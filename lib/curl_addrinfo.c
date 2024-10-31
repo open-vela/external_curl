@@ -26,10 +26,6 @@
 
 #include <curl/curl.h>
 
-#if __NuttX__
-#include <debug.h>
-#endif
-
 #ifdef HAVE_NETINET_IN_H
 #  include <netinet/in.h>
 #endif
@@ -92,14 +88,6 @@ Curl_freeaddrinfo(struct Curl_addrinfo *cahead)
 
 
 #ifdef HAVE_GETADDRINFO
-
-#if __NuttX__
-void dns_query_cancel(int signo)
-{
-  syslog(0,"dns_query_cancel \n");
-}
-#endif
-
 /*
  * Curl_getaddrinfo_ex()
  *
@@ -129,10 +117,6 @@ Curl_getaddrinfo_ex(const char *nodename,
   int error;
 
   *result = NULL; /* assume failure */
-
-#if __NuttX__
-  signal(SIGINT, dns_query_cancel);
-#endif
 
   error = getaddrinfo(nodename, servname, hints, &aihead);
   if(error)

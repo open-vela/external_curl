@@ -25,11 +25,6 @@
 #include "curl_setup.h"
 #include "socketpair.h"
 
-#if __NuttX__
-#include <debug.h>
-#include <nuttx/pthread.h>
-#endif
-
 /***********************************************************************
  * Only for threaded name resolves builds
  **********************************************************************/
@@ -496,13 +491,6 @@ static CURLcode thread_wait_resolv(struct Curl_easy *data,
   td = data->state.async.tdata;
   DEBUGASSERT(td);
   DEBUGASSERT(td->thread_hnd != curl_thread_t_null);
-
-#if __NuttX__
-  if (report == FALSE) {
-    syslog(0,"thread_wait_resolv send %d SIGINT \n",*(td->thread_hnd));
-    pthread_kill(*(td->thread_hnd), SIGINT);
-  }
-#endif
 
   /* wait for the thread to resolve the name */
   if(Curl_thread_join(&td->thread_hnd)) {
