@@ -524,6 +524,7 @@ CURLcode glob_next_url(char **globbed, struct URLGlob *glob)
   size_t len;
   size_t buflen = glob->urllen + 1;
   char *buf = glob->glob_buffer;
+  int ret;
 
   *globbed = NULL;
 
@@ -576,9 +577,12 @@ CURLcode glob_next_url(char **globbed, struct URLGlob *glob)
     switch(pat->type) {
     case UPTSet:
       if(pat->content.Set.elements) {
-        msnprintf(buf, buflen, "%s",
-                  pat->content.Set.elements[pat->content.Set.ptr_s]);
-        len = strlen(buf);
+        ret = msnprintf(buf, buflen, "%s",
+                        pat->content.Set.elements[pat->content.Set.ptr_s]);
+        if(ret >= buflen) {
+          return CURLE_URL_MALFORMAT;
+        }
+        len = ret;
         buf += len;
         buflen -= len;
       }
@@ -591,10 +595,13 @@ CURLcode glob_next_url(char **globbed, struct URLGlob *glob)
       }
       break;
     case UPTNumRange:
-      msnprintf(buf, buflen, "%0*" CURL_FORMAT_CURL_OFF_T,
-                pat->content.NumRange.padlength,
-                pat->content.NumRange.ptr_n);
-      len = strlen(buf);
+      ret = msnprintf(buf, buflen, "%0*" CURL_FORMAT_CURL_OFF_T,
+                      pat->content.NumRange.padlength,
+                      pat->content.NumRange.ptr_n);
+      if(ret >= buflen) {
+        return CURLE_URL_MALFORMAT;
+      }
+      len = ret;
       buf += len;
       buflen -= len;
       break;
@@ -619,6 +626,7 @@ CURLcode glob_match_url(char **result, char *filename, struct URLGlob *glob)
   char *appendthis = (char *)"";
   size_t appendlen = 0;
   struct curlx_dynbuf dyn;
+  int ret;
 
   *result = NULL;
 
@@ -661,11 +669,15 @@ CURLcode glob_match_url(char **result, char *filename, struct URLGlob *glob)
           appendlen = 1;
           break;
         case UPTNumRange:
-          msnprintf(numbuf, sizeof(numbuf), "%0*" CURL_FORMAT_CURL_OFF_T,
-                    pat->content.NumRange.padlength,
-                    pat->content.NumRange.ptr_n);
+          ret = msnprintf(numbuf, sizeof(numbuf), "%0*" CURL_FORMAT_CURL_OFF_T,
+                          pat->content.NumRange.padlength,
+                          pat->content.NumRange.ptr_n);
+          if(ret >= sizeof(numbuf)) {
+            curlx_dyn_free(&dyn);
+            return CURLE_URL_MALFORMAT;
+          }
           appendthis = numbuf;
-          appendlen = strlen(numbuf);
+          appendlen = ret;
           break;
         default:
           fprintf(tool_stderr, "internal error: invalid pattern type (%d)\n",
