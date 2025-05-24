@@ -29,6 +29,8 @@
  *
  */
 
+#include <pthread.h>
+
 #if __NuttX__
 #include <nuttx/tls.h>
 #endif
