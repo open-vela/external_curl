@@ -32,7 +32,7 @@
 #include <pthread.h>
 
 #if __NuttX__
-#include <nuttx/tls.h>
+#include <nuttx/tls_task.h>
 #endif
 
 #include "curl_setup.h"
